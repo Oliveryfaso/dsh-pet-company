@@ -21,6 +21,8 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v7
         with:
+          # The rollback contract test loads the validator from a pinned old commit.
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Node
