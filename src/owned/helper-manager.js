@@ -1,0 +1,26 @@
+import {spawn as spawnProcess} from 'node:child_process';
+import {randomUUID} from 'node:crypto';
+import {mkdir} from 'node:fs/promises';
+import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const fail=(message)=>Object.assign(Error(message),{code:'OWNED_UNAVAILABLE'});
+export class HelperManager {
+ constructor({home,ownership,source,spawn=spawnProcess,stopTimeoutMs=3000}={}){Object.assign(this,{home,ownership,source,spawn,stopTimeoutMs});this.child=null;this.children=new Set();this.pending=new Map();this.phase='missing';this.reason='尚未准备独立 Electron 43.3.0；设置仍可使用。';this.queue=Promise.resolve();this.epoch=0;this.closed=false;this.ready=false;}
+ status(){return {phase:this.phase,reason:this.reason};}
+ async stopChild(child){if(!child)return;if(child.exitCode!==null||child.signalCode!==null)return;child.stdin.end();const exited=new Promise(resolve=>child.once('exit',resolve));const timer=setTimeout(()=>{if(child.exitCode===null&&child.signalCode===null)child.kill('SIGTERM');},Math.min(500,this.stopTimeoutMs));const force=setTimeout(()=>{if(child.exitCode===null&&child.signalCode===null)child.kill('SIGKILL');},this.stopTimeoutMs);try{await exited;}finally{clearTimeout(timer);clearTimeout(force);}}
+ async stopAll(){this.ready=false;for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(fail('运行组件已停止'));}this.pending.clear();await Promise.all([...this.children].map(c=>this.stopChild(c)));this.child=null;}
+ configure(view,state){const epoch=++this.epoch;const run=async()=>{if(this.closed||epoch!==this.epoch)return;await this.stopAll();if(this.closed||epoch!==this.epoch)return;if(!this.ownership?.owned){this.phase='blocked';this.reason='运行权被其他 Profile 占用';return;}if(view.display!=='desktop'){this.phase='disabled';this.reason='当前不使用桌面窗口';return;}let executable;try{executable=await this.source?.executable();}catch{this.phase='failed';this.reason='无法验证独立运行时';return;}if(!executable){this.phase=this.source?.status?.().phase??'missing';this.reason=this.source?.status?.().reason??'尚未准备独立 Electron 43.3.0';return;}if(this.closed||epoch!==this.epoch)return;
+  await mkdir(join(this.home,'dsh-pet-company/runtime/user-data'),{recursive:true});this.phase='starting';this.reason='正在启动独立伴侣';
+  let child;try{const env={};for(const key of ['HOME','PATH','TMPDIR','LANG','LC_ALL','DISPLAY','WAYLAND_DISPLAY','XDG_RUNTIME_DIR'])if(process.env[key])env[key]=process.env[key];child=this.spawn(executable,[fileURLToPath(new URL('../../runtime/electron-helper/',import.meta.url)),'--company-user-data='+join(this.home,'dsh-pet-company/runtime/user-data')],{stdio:['pipe','pipe','pipe'],env,windowsHide:true});}catch{this.phase='failed';this.reason='独立伴侣启动失败';return;}
+  this.child=child;this.children.add(child);let buffer='';
+  await new Promise(resolve=>{let settled=false;const finish=()=>{if(settled)return;settled=true;clearTimeout(startTimer);resolve();};const startTimer=setTimeout(()=>{this.phase='failed';this.reason='独立伴侣启动超时';void this.stopChild(child).then(finish);},10_000);
+   child.stdout.on('data',chunk=>{buffer+=chunk;if(Buffer.byteLength(buffer)>8192){this.phase='failed';this.reason='运行组件响应无效';void this.stopChild(child).then(finish);return;}let at;while((at=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,at);buffer=buffer.slice(at+1);let msg;try{msg=JSON.parse(line);}catch{continue;}if(msg.type==='ready'&&!this.closed&&this.child===child&&epoch===this.epoch){this.ready=true;this.phase='ready';this.reason='';finish();}if(msg.type==='ack'&&typeof msg.id==='string'){const item=this.pending.get(msg.id);if(item){this.pending.delete(msg.id);clearTimeout(item.timer);item.resolve({ok:true});}}}});
+   child.stderr?.resume();child.on('error',()=>{this.phase='failed';this.reason='独立伴侣未能启动';finish();});child.once('exit',()=>{this.children.delete(child);if(this.child===child){this.child=null;this.ready=false;if(!this.closed&&this.phase!=='disabled'){this.phase='failed';this.reason='独立伴侣已退出，可在设置中重试';}}for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(fail('运行组件已退出'));}this.pending.clear();finish();});child.stdin.on('error',()=>{});
+   child.stdin.write(JSON.stringify({type:'init',view,state})+'\n');
+  });
+ };
+ this.queue=this.queue.then(run,run);return this.queue;}
+ send(state){if(!this.ready||!this.child)return Promise.reject(fail('独立伴侣尚未连接'));if(this.pending.size)return Promise.reject(fail('运行组件正在处理关怀'));const id=randomUUID(),body=JSON.stringify({type:'state',id,expiresAt:Date.now()+1500,state})+'\n';if(Buffer.byteLength(body)>24*1024)return Promise.reject(fail('关怀状态过大'));return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(fail('关怀回执超时，本次不重试'));},1500);this.pending.set(id,{resolve,reject,timer});this.child.stdin.write(body,e=>{if(e){clearTimeout(timer);this.pending.delete(id);reject(fail('关怀投递失败'));}});});}
+ stop(){this.phase='disabled';this.reason='当前不使用桌面窗口';++this.epoch;this.queue=this.queue.then(()=>this.stopAll(),()=>this.stopAll());return this.queue;}
+ close(){if(this.closing)return this.closing;this.closed=true;++this.epoch;return this.closing=(async()=>{await this.queue;await this.stopAll();this.phase='disabled';this.reason='陪伴已停止';})();}
+}

@@ -2,9 +2,10 @@ import {randomUUID} from 'node:crypto';
 import {readFile,writeFile,mkdir,rename,rm} from 'node:fs/promises';
 import {join,dirname} from 'node:path';
 import {DEFAULTS,validateConfig} from './core.js';
+import {APPEARANCE_DEFAULTS,validateAppearance} from './owned/appearance.js';
 export const EMBEDDED_IDS=Object.freeze(['companion-silver','companion-orange','companion-tide']);
-export const PROVIDER_DEFAULTS=Object.freeze({...DEFAULTS,schemaVersion:2,provider:'embedded',petId:EMBEDDED_IDS[0],externalTarget:'main',embeddedTarget:EMBEDDED_IDS[0],handoffConfirmed:true});
-const extras=['schemaVersion','provider','externalTarget','embeddedTarget','handoffConfirmed'];
+export const PROVIDER_DEFAULTS=Object.freeze({...DEFAULTS,schemaVersion:2,provider:'embedded',petId:EMBEDDED_IDS[0],externalTarget:'main',embeddedTarget:EMBEDDED_IDS[0],handoffConfirmed:true,appearance:APPEARANCE_DEFAULTS});
+const extras=['schemaVersion','provider','externalTarget','embeddedTarget','handoffConfirmed','appearance'];
 export function validateCompanyConfig(value) {
  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('配置必须是对象');
  for(const key of Object.keys(value))if(!Object.hasOwn(PROVIDER_DEFAULTS,key))throw Error('未知配置项：'+key);
@@ -14,6 +15,7 @@ export function validateCompanyConfig(value) {
  if(typeof result.handoffConfirmed!=='boolean')throw Error('交接确认必须是开关');
  if(!EMBEDDED_IDS.includes(result.embeddedTarget))throw Error('内置角色无效');
  validateConfig({petId:result.externalTarget});
+ result.appearance=validateAppearance(result.appearance);
  const legacy=Object.fromEntries(Object.keys(DEFAULTS).map(k=>[k,result[k]]));validateConfig(legacy);
  if(result.petId!==(result.provider==='embedded'?result.embeddedTarget:result.externalTarget))throw Error('当前目标与陪伴模式不一致');
  return result;
@@ -65,5 +67,5 @@ export class ProviderBridge {
  state(...args){return this.call('state',args);}
  broadcast(...args){return this.call('broadcast',args);}
  animate(...args){return this.call('animate',args);}
- async close(){if(this.closed)return;this.closed=true;this.generation++;await Promise.allSettled([...new Set(Object.values(this.providers))].map(p=>p?.close()));}
+ close(){if(this.closing)return this.closing;this.closed=true;this.generation++;return this.closing=Promise.all([...new Set(Object.values(this.providers))].map(p=>p?.close()));}
 }

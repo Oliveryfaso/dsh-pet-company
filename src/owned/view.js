@@ -28,5 +28,5 @@ export function createOwnedView(container,view,{assetURL,onDrag=()=>{},onInterac
   if(anim&&anim.counter!==baseline.anim){baseline.anim=anim.counter;if(anim.data){feedback.show({text:'我在呢～',eventId:anim.data.feedback.eventId,trigger:'care',fallback:true});player.switchTo(view.animations.events.whisper[0],true);}}
  }
  player.playIdle();
- return {update,destroy(){disposed=true;ac.abort();feedback.destroy();player.dispose();stage.remove();}};
+ return {update,consume(state){const pet=state?.pets?.[view.pet.id];if(pet)baseline={say:pet.say?.counter,anim:pet.anim?.counter};},destroy(){disposed=true;ac.abort();feedback.destroy();player.dispose();stage.remove();}};
 }

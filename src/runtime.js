@@ -9,13 +9,15 @@ export function createRuntime(ctx, initial, home, options={}) {
   let configSource='';
   let config=initialCompanyConfig(initial??{}), available=false, reason='正在连接 dsh-pet', phase='connecting';
   let lastReminder=null, timer, stopped=false, saving=false, corrupt=false, mutating=false, serial=0, lastAttempt=-Infinity;
+  const mutations=new Set();let stopping;
   const scheduler=new Scheduler(now());
-  const status=()=>({available,reason:!config.handoffConfirmed?'升级交接待确认：请先在官方入口停用旧实例并停止相关 Profile。':reason,phase:!config.handoffConfirmed?'handoff':phase,config:{...config},lastReminder,snoozeUntil:scheduler.snoozeUntil});
+  const status=()=>({readOnly:options.ownership?!options.ownership.owned:false,ownership:options.ownership?.status?.(),runtime:options.runtimeSource?.status?.(),helper:options.helper?.status?.(),available,reason:!config.handoffConfirmed?'升级交接待确认：请先在官方入口停用旧实例并停止相关 Profile。':reason,phase:!config.handoffConfirmed?'handoff':phase,config:{...config},lastReminder,snoozeUntil:scheduler.snoozeUntil});
   const ready=(async()=>{
+    await options.ownership?.ready;
     const loaded=await loadCompanyConfig(home,initial??{});
     config=loaded.config;configSource=loaded.source;corrupt=loaded.corrupt;
     if(corrupt)reason='陪伴配置无法读取，请先修复配置文件';
-    await bridge.update?.(config);
+    if(!stopped&&(!options.ownership||options.ownership.owned))await bridge.update?.(config);
   })();
   function unavailable(error) {
     available=false;
@@ -32,7 +34,7 @@ export function createRuntime(ctx, initial, home, options={}) {
   }
   async function tick() {
     await ready;
-    if (stopped || mutating || saving || corrupt || !config.handoffConfirmed) return;
+    if (stopped || mutating || saving || corrupt || !config.handoffConfirmed || options.ownership&&!options.ownership.owned) return;
     mutating=true;
     try {
       const state=await bridge.state(config.petId); if(stopped)return;
@@ -53,7 +55,7 @@ export function createRuntime(ctx, initial, home, options={}) {
     for await (const chunk of req) { body+=chunk; if(Buffer.byteLength(body)>8192) throw Error('请求过大'); }
     return JSON.parse(body||'{}');
   }
-  async function handle(req,res) {
+  async function handleRequest(req,res) {
     const send=(code,data)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data));};
     await ready;
     const requestedPath=new URL(req.url,'http://localhost').pathname;
@@ -61,19 +63,32 @@ export function createRuntime(ctx, initial, home, options={}) {
     if(req.method==='GET' && path===ROUTE+'/status') return send(200,status());
     if(req.method==='GET') return send(404,{error:'接口不存在'});
     if(!['PUT','POST'].includes(req.method)) return send(405,{error:'请求方法不支持'});
+    if(stopped)return send(503,{error:'陪伴正在停止，请在重启后操作'});
     if(saving||mutating) return send(409,{error:'正在处理，请稍后重试'});
     saving=true;
     try {
       const body=await bodyOf(req);
+      if(req.method==='POST'&&path===ROUTE+'/owner/recover'&&options.ownership){await options.ownership.recover(body);if(!stopped&&options.ownership.owned)await bridge.update?.(config);return send(200,status());}
+      if(options.ownership&&!options.ownership.owned)return send(409,{error:'本 Profile 只读，运行权被占用'});
+      if(req.method==='POST'&&path===ROUTE+'/runtime/download'&&options.runtimeSource){
+        if(body.consent!==true)throw Error('下载前需要明确同意');
+        void options.runtimeSource.download(body).then(()=>{if(!stopped&&(!options.ownership||options.ownership.owned))return bridge.update?.(config);}).catch(()=>{});return send(202,status());
+      }
+      if(req.method==='POST'&&path===ROUTE+'/runtime/retry'){await bridge.update?.(config);return send(200,status());}
+      if(req.method==='POST'&&path===ROUTE+'/handoff'){
+        if(corrupt||body.stoppedOldInstances!==true)throw Error('请先停用旧实例并停止其 Profile');
+        config=await saveCompanyConfig(home,{...config,handoffConfirmed:true});if(!stopped)await bridge.update?.(config);return send(200,status());
+      }
       if(req.method==='PUT' && path===ROUTE+'/config') {
         if(corrupt) return send(409,{error:'配置文件损坏，未覆盖原文件。请先修复 '+configSource});
+        if(Object.hasOwn(body,'handoffConfirmed')&&body.handoffConfirmed!==config.handoffConfirmed)throw Error('请使用显式升级交接入口');
         const candidate={...config,...body};
         const targetKey=candidate.provider==='embedded'?'embeddedTarget':'externalTarget';
         if(Object.hasOwn(body,'petId')&&!Object.hasOwn(body,targetKey))candidate[targetKey]=body.petId;
         const next=validateCompanyConfig(candidate);
         await saveCompanyConfig(home,next);
         config=next; scheduler.reset(now());
-        await bridge.update?.(config);
+        if(!stopped)await bridge.update?.(config);
         return send(200,status());
       }
       if(req.method==='POST' && path===ROUTE+'/snooze') {
@@ -96,14 +111,16 @@ export function createRuntime(ctx, initial, home, options={}) {
       send(404,{error:'接口不存在'});
     } catch(e) { send(400,{error:e.message}); } finally {saving=false;}
   }
+  function handle(req,res){const pending=handleRequest(req,res);if(['PUT','POST'].includes(req.method)){mutations.add(pending);pending.then(()=>mutations.delete(pending),()=>mutations.delete(pending));}return pending;}
+  function stop(){if(stopping)return stopping;stopped=true;clearTimeout(timer);return stopping=(async()=>{await ready;await Promise.allSettled([...mutations]);await bridge.close();})();}
   const start=()=>{
     ctx.effect(()=>ctx.webServer.register({kind:'prefix',path:ROUTE,handler:handle}),'pet company routes');
     ctx.effect(()=>ctx.webServer.register({kind:'prefix',path:LEGACY_ROUTE,handler:handle}),'legacy companion routes');
     ctx.effect(()=>{
       const run=async()=>{ await tick(); if(!stopped) {timer=setTimeout(run,15_000); timer.unref?.();} };
       void run();
-      return ()=>{stopped=true;clearTimeout(timer);return bridge.close();};
+      return stop;
     },'companion polling');
   };
-  return {start,tick,handle,status,ready,stop:()=>{stopped=true;clearTimeout(timer);return bridge.close();}};
+  return {start,tick,handle,status,ready,stop};
 }

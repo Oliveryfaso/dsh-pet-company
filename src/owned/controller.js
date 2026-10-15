@@ -18,14 +18,15 @@ export class OwnedController {
   if(!feedback||typeof feedback!=='object'||Object.keys(feedback).sort().join(',')!=='eventId,source'||feedback.source!=='care'||typeof feedback.eventId!=='string'||!/^[A-Za-z0-9_.:-]{1,128}$/.test(feedback.eventId))throw Error('关怀标识无效');
   if(this.observer.snapshot().workStatus.data.state==='waiting')throw failure('OWNED_WAITING','等你处理完审批或提问后再关心你');
   const key=kind+':'+feedback.eventId;
-  if(this.seen.has(key))return this.seen.get(key);
+  for(const [id,event]of this.seen)if(event.settled&&this.now()-event.at>5*60_000)this.seen.delete(id);
+  if(this.seen.has(key))return this.seen.get(key).promise;
   if(this.seen.size>=512)throw failure('OWNED_BUSY','关怀事件已满，请稍后');
   const generation=this.generation;
   this.leaves[kind]={counter:this.leaves[kind].counter+1,data:{...data,feedback:{...feedback}}};
   const promise=(async()=>{if(this.currentView.display==='desktop')await this.helper.send(this.rawState());if(this.closed||generation!==this.generation)throw failure('PROVIDER_CHANGED','陪伴目标已改变');return {ok:true};})();
-  this.seen.set(key,promise);return promise;
+  const event={promise,at:this.now(),settled:false};this.seen.set(key,event);promise.then(()=>{event.settled=true;},()=>{event.settled=true;});return promise;
  }
  broadcast(id,text,feedback){if(typeof text!=='string'||!text.trim()||Array.from(text).length>2000)return Promise.reject(Error('关怀文字长度无效'));return this.deliver('say',id,{text},feedback);}
  animate(id,feedback){return this.deliver('anim',id,{name:'care'},feedback);}
- async close(){if(this.closed)return;this.closed=true;this.active=false;this.generation++;this.seen.clear();await this.helper?.close?.();}
+ close(){if(this.closing)return this.closing;this.closed=true;this.active=false;this.generation++;this.seen.clear();return this.closing=Promise.resolve().then(()=>this.helper?.close?.());}
 }

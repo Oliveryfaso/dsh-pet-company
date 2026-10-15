@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const vm = require('node:vm');
 const SOURCE = readFileSync(__dirname + '/../client.js', 'utf8');
-const CONFIG = {enabled:true,frequency:'quiet',petId:'main',character:'silver',quietStart:'00:00',quietEnd:'08:00',minGapMinutes:20,sitMinutes:50,waterMinutes:90,workMinutes:120,lateAt:'23:30',sitting:true,water:true,work:true,late:true};
+const CONFIG = {enabled:true,frequency:'quiet',petId:'main',character:'silver',quietStart:'00:00',quietEnd:'08:00',minGapMinutes:20,sitMinutes:50,waterMinutes:90,workMinutes:120,lateAt:'23:30',sitting:true,water:true,work:true,late:true,schemaVersion:2,provider:'external',externalTarget:'main',embeddedTarget:'companion-silver',handoffConfirmed:true,appearance:{size:462,marginX:16,marginY:16,corner:'bottom-right',cloud:true,pop:true,closeSeconds:8,display:'desktop'}};
 const clone = x => JSON.parse(JSON.stringify(x));
 function fixture(options = {}) {
   let component, tree, cursor = 0, pending = false, running = true, serial = 0;

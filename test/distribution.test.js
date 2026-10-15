@@ -1,6 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,readdir,stat} from 'node:fs/promises';
+import {readFile,readdir,stat,mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
 let config={},assets={};try {config=await import('../src/owned/config.js');assets=await import('../src/owned/assets.js');}catch(e){if(e.code!=='ERR_MODULE_NOT_FOUND')throw e;}
 const read=p=>readFile(new URL('../'+p,import.meta.url),'utf8');
 test('one_manifest_one_client_identity',async()=>{const manifest=JSON.parse(await read('package.json'));const entry=await read('src/client-entry.js');assert.equal(manifest.name,'dsh-pet-company');assert.equal((entry.match(/__ModuleLoader__\.load\(/g)||[]).length,1);assert.match(entry,/createOwnedClientPlugin/);assert.match(entry,/ctx\.plugin\(/);assert.equal((await read('cordis.patch.yml')).match(/id:/g).length,1);});
@@ -8,3 +11,12 @@ test('no_foreign_routes_or_data_paths',async()=>{assert.equal(typeof assets.read
 test('fresh_pack_has_all_three_assets',async()=>{assert.equal(typeof config.roleView,'function');for(const role of ['silver','orange','tide']){const view=await config.roleView('companion-'+role);assert.equal(view.pet.id,'companion-'+role);assert.equal(view.pet.size,462);for(const anim of new Set([...view.animations.idle,...view.animations.clicks,...view.animations.events.whisper])){const asset=await assets.readOwnedAsset(view.pet.id,anim);assert.ok(asset.bytes.length>100);assert.equal(asset.type,'video/webm');}}});
 test('no_default_main_fallback',async()=>{assert.equal(typeof config.roleView,'function');await assert.rejects(()=>config.roleView('main'));await assert.rejects(()=>config.roleView('companion-not-real'));});
 test('no_model_imports_or_command_routes',async()=>{const dirs=['src/owned','vendor/dsh-pet-0.3.7'];for(const dir of dirs){for(const name of await readdir(new URL('../'+dir+'/',import.meta.url))){if(!name.endsWith('.js'))continue;const source=await read(dir+'/'+name);assert.doesNotMatch(source,/dsh-pet-7340|\/broadcast\?|\/chat|whisperPrompt|commandUi|navIcon|providerService|apiKey/);}}assert.ok((await stat(new URL('../vendor/dsh-pet-0.3.7/LICENSE',import.meta.url))).isFile());});
+test('owned_helper_uses_private_IPC_protocol_and_prebuilt_view',async()=>{for(const name of ['main.cjs','preload.cjs','renderer.js','index.html','view-bundle.js','package.json'])assert.ok((await stat(new URL('../runtime/electron-helper/'+name,import.meta.url))).isFile());const main=await read('runtime/electron-helper/main.cjs'),preload=await read('runtime/electron-helper/preload.cjs');assert.match(main,/contextIsolation:true/);assert.match(main,/sandbox:true/);assert.match(main,/company-pet/);assert.doesNotMatch(main,/http:\/\/127|disable-web-security|no-sandbox/);assert.doesNotMatch(preload,/require\(['"]node:|exposeInMainWorld\(['"]require/);});
+test('published package contains runtime and attribution without install hooks or local data',async t=>{
+ const manifest=JSON.parse(await read('package.json'));for(const hook of ['prepare','preinstall','install','postinstall'])assert.equal(manifest.scripts[hook],undefined);
+ const cache=await mkdtemp(join(tmpdir(),'company-pack-'));t.after(()=>rm(cache,{recursive:true,force:true}));
+ const [pack]=JSON.parse(execFileSync('npm',['pack','--dry-run','--json'],{cwd:new URL('../',import.meta.url),env:{...process.env,npm_config_cache:cache},encoding:'utf8',maxBuffer:4*1024*1024}));const files=new Set(pack.files.map(f=>f.path));
+ for(const required of ['runtime/electron-helper/main.cjs','runtime/electron-helper/preload.cjs','runtime/electron-helper/renderer.js','runtime/electron-helper/view-bundle.js','vendor/dsh-pet-0.3.7/player.js','vendor/dsh-pet-0.3.7/work-status.js','vendor/dsh-pet-0.3.7/LICENSE','ASSET-LICENSE.md','THIRD_PARTY_NOTICES.md'])assert.ok(files.has(required),'Missing '+required);
+ for(const file of files)assert.doesNotMatch(file,/(?:^|\/)(?:node_modules|\.git|\.env|sessions|storages|user-data|electron-cache|owner\.lock|Electron\.app)(?:\/|$)|\.(?:log|sqlite|db|tgz)$/);
+ for(const role of ['silver','orange','tide'])assert.ok(files.has('pet/companion-'+role+'-config.json'));
+});
