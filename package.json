@@ -1,7 +1,7 @@
 {
   "name": "dsh-pet-company",
   "version": "0.1.0",
-  "description": "安静一点的桌面陪伴：久坐、喝水、休息与深夜关怀。依赖 dsh-pet。",
+  "description": "\u5b89\u9759\u4e00\u70b9\u7684\u684c\u9762\u966a\u4f34\uff1a\u4e45\u5750\u3001\u559d\u6c34\u3001\u4f11\u606f\u4e0e\u6df1\u591c\u5173\u6000\u3002\u4f9d\u8d56 dsh-pet\u3002",
   "type": "module",
   "main": "src/index.js",
   "exports": {
@@ -31,12 +31,12 @@
   ],
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.js test/*.test.cjs tests/*.test.mjs",
-    "check": "node scripts/build-client.mjs --check && node --check src/renderer-bridge.js && node --check src/client-relay.js && node --check src/index.js && node --check src/core.js && node --check src/bridge.js && node --check src/runtime.js && node --check client.js && node --check scripts/generate-pet-pack.mjs && node --check scripts/verify-fywdy-pet-packs.mjs && node --check scripts/render-ui-fixtures.cjs && node --check scripts/capture-pet-pack-preview.mjs && node --check scripts/build-feedback-demo.mjs && node --check scripts/verify-feedback-browser.mjs",
-    "build": "node scripts/build-client.mjs",
+    "check": "node scripts/build-owned-runtime.mjs --check && node scripts/build-client.mjs --check && node --check src/renderer-bridge.js && node --check src/client-relay.js && node --check src/index.js && node --check src/core.js && node --check src/bridge.js && node --check src/runtime.js && node --check client.js && node --check scripts/generate-pet-pack.mjs && node --check scripts/verify-fywdy-pet-packs.mjs && node --check scripts/render-ui-fixtures.cjs && node --check scripts/capture-pet-pack-preview.mjs && node --check scripts/build-feedback-demo.mjs && node --check scripts/verify-feedback-browser.mjs",
+    "build": "node scripts/build-owned-runtime.mjs && node scripts/build-client.mjs",
     "build:feedback-demo": "node scripts/build-feedback-demo.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13"
   },
   "keywords": [
     "dsh-plugin",

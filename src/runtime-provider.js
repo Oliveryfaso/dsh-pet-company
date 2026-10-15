@@ -60,7 +60,7 @@ export async function saveCompanyConfig(home,value) {
 }
 export class ProviderBridge {
  constructor(providers){this.providers=providers;this.generation=0;this.closed=false;}
- async update(config){this.generation++;this.config=config;await this.providers[config.provider]?.updateTarget?.(config.petId);}
+ async update(config){if(this.closed)return;this.generation++;const prior=this.config?.provider;this.config=config;if(prior&&prior!==config.provider)await this.providers[prior]?.deactivate?.();const provider=this.providers[config.provider];if(provider?.configure)await provider.configure(config);else await provider?.updateTarget?.(config.petId);}
  async call(method,args){const generation=this.generation,provider=this.providers[this.config?.provider];if(this.closed)throw Error('陪伴已停止');if(!provider)throw Error('所选运行组件尚未就绪');const result=await provider[method](...args);if(this.closed||generation!==this.generation)throw Object.assign(Error('陪伴目标已切换'),{code:'PROVIDER_CHANGED'});return result;}
  state(...args){return this.call('state',args);}
  broadcast(...args){return this.call('broadcast',args);}

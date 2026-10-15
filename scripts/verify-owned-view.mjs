@@ -18,7 +18,7 @@ const view=await (await fetch('/fixture-view')).json();
 const state={pets:{[view.pet.id]:{say:{counter:0,data:null},anim:{counter:0,data:null}}}};
 const host=document.querySelector('#host');let dispose,overlay;
 let pops=0;const animate=Element.prototype.animate;Element.prototype.animate=function(...args){pops++;return animate.apply(this,args);};
-const nativeFetch=window.fetch;window.fetch=(url,opts)=>url==='/pet-company-runtime/view'?Promise.resolve(Response.json({view,state})):nativeFetch(url,opts);
+const nativeFetch=window.fetch;window.fetch=(url,opts)=>url.startsWith('/pet-company-runtime/view')?Promise.resolve(Response.json({view,state})):nativeFetch(url,opts);
 const React={useRef:()=>({current:host}),useEffect:fn=>{dispose=fn();},createElement:(_tag,{style})=>{for(const [key,value]of Object.entries(style))host.style[key]=typeof value==='number'&&key!=='zIndex'?value+'px':value;return null;}};
 createOwnedClientPlugin(React).apply({slots:{inject:(name,gen)=>[...gen()],register:(meta,component)=>{overlay=component;return meta;}}});overlay();
 window.fixture={host,state,view,get pops(){return pops;},mountDirect(){dispose();host.removeAttribute('style');const v=createOwnedView(host,view,{assetURL:(id,name)=>'/pet/'+id+'-animation/'+(name?name+'.webm':'')});v.update(state);this.direct=v;return v;},say(n){state.pets[view.pet.id].say={counter:n,data:{text:'喝点水吧',feedback:{eventId:'care-'+n,source:'care'}}};this.direct.update(state);},stop(){this.direct?.destroy();dispose();}};

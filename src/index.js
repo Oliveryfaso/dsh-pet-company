@@ -3,6 +3,9 @@ import {resolveDshHome} from '@deepseek-ai/dsh-home-paths';
 import {DEFAULTS} from './core.js';
 import {createRuntime} from './runtime.js';
 import {RendererPetBridge,bindRendererBridge} from './renderer-bridge.js';
+import {ProviderBridge} from './runtime-provider.js';
+import {OwnedController} from './owned/controller.js';
+import * as ownedPlugin from './owned/plugin.js';
 export const name='dsh-pet-company';
 export const inject=['webServer','connection'];
 const fields={};
@@ -18,7 +21,10 @@ for(const [key,value] of Object.entries(DEFAULTS)) {
 export const Config=Schema.object(fields).description('首次启动默认值。日常请在「设置 → 陪伴」管理；该页面保存的配置优先于此处。');
 export function apply(ctx,config) {
   let runtime;
-  const bridge=bindRendererBridge(ctx,new RendererPetBridge({onConnect:()=>runtime?.tick()}));
+  const external=bindRendererBridge(ctx,new RendererPetBridge({onConnect:()=>runtime?.tick()}));
+  const embedded=new OwnedController();
+  ctx.plugin(ownedPlugin,{controller:embedded});
+  const bridge=new ProviderBridge({external,embedded});
   runtime=createRuntime(ctx,config,resolveDshHome(),{bridge});
   runtime.start();
 }

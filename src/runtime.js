@@ -19,7 +19,7 @@ export function createRuntime(ctx, initial, home, options={}) {
   })();
   function unavailable(error) {
     available=false;
-    reason=['PET_NOT_FOUND','DESKTOP_ACCESS_BLOCKED','RENDERER_UNAVAILABLE','RELAY_TIMEOUT','RELAY_CLOSED','RELAY_TOO_LARGE','RELAY_BUSY','RELAY_HANDOFF','RELAY_LEASE_LOST','RELAY_BAD_REQUEST','RELAY_BAD_RESPONSE'].includes(error.code)?error.message:'需要先安装并启用 dsh-pet 才能显示宠物';
+    reason=['OWNED_UNAVAILABLE','OWNED_WAITING','PROVIDER_CHANGED','PET_NOT_FOUND','DESKTOP_ACCESS_BLOCKED','RENDERER_UNAVAILABLE','RELAY_TIMEOUT','RELAY_CLOSED','RELAY_TOO_LARGE','RELAY_BUSY','RELAY_HANDOFF','RELAY_LEASE_LOST','RELAY_BAD_REQUEST','RELAY_BAD_RESPONSE'].includes(error.code)?error.message:'需要先安装并启用 dsh-pet 才能显示宠物';
     phase='unavailable'; scheduler.disconnect(now());
   }
   async function speak(kind,day) {
