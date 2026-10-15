@@ -269,107 +269,96 @@ function createPetFeedback({actor,anchor=actor,theme='silver',pop=true,cloud=tru
  };
 }
 
-// Derived from dsh-pet 0.3.7 PetSprite and this repository's reviewed presentation patch.
-// Copyright (c) PC2005-cloud. MIT; see LICENSE. Scope: compositor-ready video swap only.
+// Derived loader/lifecycle from dsh-pet 0.3.7 PetSprite. Copyright (c) PC2005-cloud; MIT, see LICENSE.
+// Company change: one visible Canvas2D surface. Native pixel continuity still requires verification.
+function requestFrame(win,video,callback){
+ if(typeof video.requestVideoFrameCallback==='function'){const id=video.requestVideoFrameCallback(callback);return ()=>video.cancelVideoFrameCallback?.(id);}
+ const id=win.requestAnimationFrame(callback);return ()=>win.cancelAnimationFrame(id);
+}
 class OwnedVideoPlayer {
- constructor({videoA,videoB,pet,assetBase,idle}) {
-  Object.assign(this,{videoA,videoB,pet,assetBase,idle,front:0,gen:0,pending:null,facing:'left',presentationFront:null});
+ constructor({videoA,videoB,surface,pet,assetBase,idle}){
+  const output=surface?.getContext?.('2d',{alpha:true});
+  if(!output)throw Error('Canvas2D is required for the companion frame surface');
+  const buffer=surface.ownerDocument.createElement('canvas'),bufferContext=buffer.getContext('2d',{alpha:true});
+  if(!bufferContext)throw Error('Canvas2D frame buffer is unavailable');
+  Object.assign(this,{videoA,videoB,surface,output,buffer,bufferContext,pet,assetBase,idle,win:surface.ownerDocument.defaultView,front:0,gen:0,pending:null,presentationFront:null,hasFrame:false});
+  for(const video of [videoA,videoB])video.style.setProperty('opacity','0','important');
  }
  switchTo(name,once=true){this.switchPresentationVideo(name,once);}
  playIdle(){this.switchTo(this.idle,false);}
  handleEnded(){this.playIdle();}
- dispose(){this.presentationVideoDisposed=true;++this.gen;this.presentationVideoCleanup?.();this.pending=null;this.presentationFront=null;for(const v of [this.videoA,this.videoB]){v.onended=null;v.pause();v.removeAttribute('src');v.load();}}
-  switchPresentationVideo(next, nextOnce) {
-    if (!next || this.presentationVideoDisposed) return;
-    if (this.pending?.anim === next && this.pending.once === nextOnce) return;
-    if (this.presentationVideoCleanup) this.presentationVideoCleanup();
-    const gen = ++this.gen;
-    const targetIndex = this.front === 0 ? 1 : 0;
-    const el = targetIndex === 0 ? this.videoA : this.videoB;
-    if (!el) return;
-    for (const video of [this.videoA, this.videoB]) video.style.transition = 'none';
-    this.pending = { anim: next, once: nextOnce, gen };
-    let frame = null, raf = null, timer = null, cleaned = false, ready = false, committed = false, expectedSource = '';
-    const current = () => !cleaned && !this.presentationVideoDisposed && this.gen === gen && this.pending?.gen === gen;
-    const cleanup = () => {
-      if (cleaned) return;
-      cleaned = true;
-      el.removeEventListener('loadeddata', onReady);
-      el.removeEventListener('error', onError);
-      if (timer !== null) window.clearTimeout(timer);
-      if (frame !== null) el.cancelVideoFrameCallback?.(frame);
-      if (raf !== null) window.cancelAnimationFrame(raf);
-      if (!committed) el.pause();
-      if (this.presentationVideoCleanup === cleanup) this.presentationVideoCleanup = null;
-    };
-    const fail = (reason) => {
-      if (!current()) return;
-      cleanup();
-      this.pending = null;
-      console.warn('[pet-company] 素材加载失败 pet=' + this.pet.id + ' anim=' + next + '：' + reason + '（保留当前画面）');
-      const retained = this.presentationFront;
-      if (retained) {
-        this.anim = retained.anim;
-        this.once = retained.once;
-        if (retained.once && !retained.handled && (retained.ended || retained.element.ended)) {
-          retained.finish();
-        }
-      }
-    };
-    const commit = () => {
-      frame = null; raf = null;
-      if (!current() || el.currentSrc !== expectedSource) return;
-      committed = true;
-      const old = this.front === 0 ? this.videoA : this.videoB;
-      el.classList.add('is-front');
-      if (old && old !== el) { old.classList.remove('is-front'); old.onended = null; old.pause(); }
-      this.front = targetIndex;
-      this.pending = null;
-      const frontState = { element: el, index: targetIndex, anim: next, once: nextOnce, ended: false, handled: false };
-      this.presentationFront = frontState;
-      this.anim = next;
-      this.once = nextOnce;
-      frontState.finish = () => {
-        if (this.presentationVideoDisposed || this.presentationFront !== frontState || this.front !== targetIndex || frontState.handled) return;
-        frontState.ended = true;
-        if (this.pending) return;
-        frontState.handled = true;
-        this.anim = frontState.anim;
-        this.once = frontState.once;
-        this.handleEnded();
-      };
-      el.onended = nextOnce ? frontState.finish : null;
-      cleanup();
-      this.pendingSquash = false;
-    };
-    const onError = () => fail('video error');
-    const onReady = () => {
-      if (!current() || ready || el.readyState < 2 || el.currentSrc !== expectedSource) return;
-      ready = true;
-      el.removeEventListener('loadeddata', onReady);
-      if (typeof el.requestVideoFrameCallback === 'function') frame = el.requestVideoFrameCallback(commit);
-      else raf = window.requestAnimationFrame(() => {
-        raf = null;
-        if (current()) raf = window.requestAnimationFrame(commit);
-      });
-      const playback = el.play();
-      playback?.catch(() => fail('video play rejected'));
-    };
-    this.presentationVideoCleanup = cleanup;
-    el.onended = null;
-    el.loop = !nextOnce;
-    el.muted = true;
-    el.autoplay = false;
-    el.playsInline = true;
-    el.style.transform = this.facing === 'right' ? 'scaleX(-1)' : '';
-    el.addEventListener('loadeddata', onReady);
-    el.addEventListener('error', onError);
-    timer = window.setTimeout(() => fail('10s 超时'), 10000);
-    el.src = this.assetBase + encodeURIComponent(next) + '.webm';
-    expectedSource = el.src;
-    el.load();
-  }
-
+ copyFrame(video){
+  if(this.presentationVideoDisposed||video.readyState<2||!video.videoWidth||!video.videoHeight)return false;
+  const width=this.hasFrame?this.surface.width:video.videoWidth,height=this.hasFrame?this.surface.height:video.videoHeight;
+  try{
+   if(this.buffer.width!==width)this.buffer.width=width;if(this.buffer.height!==height)this.buffer.height=height;
+   const scale=Math.min(width/video.videoWidth,height/video.videoHeight),w=video.videoWidth*scale,h=video.videoHeight*scale;
+   // Clear only the detached buffer. A failed decode/draw leaves the visible bitmap untouched.
+   this.bufferContext.clearRect(0,0,width,height);
+   this.bufferContext.drawImage(video,(width-w)/2,(height-h)/2,w,h);
+   if(!this.hasFrame){this.surface.width=width;this.surface.height=height;}
+   this.output.globalCompositeOperation='copy';
+   this.output.drawImage(this.buffer,0,0);
+   this.hasFrame=true;return true;
+  }catch{return false;}
+ }
+ startPainter(state){
+  const valid=()=>!this.presentationVideoDisposed&&this.presentationFront===state&&state.element.currentSrc===state.source;
+  const tick=()=>{state.cancelFrame=null;if(!valid())return;this.copyFrame(state.element);schedule();};
+  const schedule=()=>{if(valid())state.cancelFrame=requestFrame(this.win,state.element,tick);};
+  state.stop=()=>{state.cancelFrame?.();state.cancelFrame=null;};schedule();
+ }
+ dispose(){
+  if(this.presentationVideoDisposed)return;this.presentationVideoDisposed=true;++this.gen;
+  this.presentationVideoCleanup?.();this.presentationFront?.stop();this.pending=null;this.presentationFront=null;
+  for(const video of [this.videoA,this.videoB]){video.onended=null;video.classList.remove('is-front');video.pause();video.removeAttribute('src');video.load();}
+  this.surface.width=this.surface.height=this.buffer.width=this.buffer.height=0;this.hasFrame=false;
+ }
+ switchPresentationVideo(next,nextOnce){
+  if(!next||this.presentationVideoDisposed)return;
+  if(this.pending?.anim===next&&this.pending.once===nextOnce)return;
+  this.presentationVideoCleanup?.();
+  const gen=++this.gen,targetIndex=this.front===0?1:0,el=targetIndex===0?this.videoA:this.videoB;
+  this.pending={anim:next,once:nextOnce,gen};
+  let cancelFrame=null,timer=null,cleaned=false,ready=false,committed=false,expectedSource='';
+  const current=()=>!cleaned&&!this.presentationVideoDisposed&&this.gen===gen&&this.pending?.gen===gen;
+  const cleanup=()=>{
+   if(cleaned)return;cleaned=true;el.removeEventListener('loadeddata',onReady);el.removeEventListener('error',onError);
+   if(timer!==null)this.win.clearTimeout(timer);cancelFrame?.();cancelFrame=null;
+   if(!committed)el.pause();if(this.presentationVideoCleanup===cleanup)this.presentationVideoCleanup=null;
+  };
+  const fail=reason=>{
+   if(!current())return;cleanup();this.pending=null;
+   console.warn('[pet-company] 素材加载失败 pet='+this.pet.id+' anim='+next+'：'+reason+'（保留当前画面）');
+   const retained=this.presentationFront;
+   if(retained){this.anim=retained.anim;this.once=retained.once;if(retained.once&&!retained.handled&&(retained.ended||retained.element.ended))retained.finish();}
+  };
+  const commit=()=>{
+   const old=this.presentationFront;old?.stop();
+   const state={element:el,source:expectedSource,index:targetIndex,anim:next,once:nextOnce,ended:false,handled:false,cancelFrame:null};
+   this.presentationFront=state;this.front=targetIndex;this.pending=null;this.anim=next;this.once=nextOnce;committed=true;
+   for(const video of [this.videoA,this.videoB]){if(video===el)video.classList.add('is-front');else{video.classList.remove('is-front');video.onended=null;video.pause();}}
+   state.finish=()=>{
+    if(this.presentationVideoDisposed||this.presentationFront!==state||state.handled)return;
+    state.ended=true;if(this.pending)return;state.handled=true;this.anim=state.anim;this.once=state.once;this.handleEnded();
+   };
+   el.onended=nextOnce?state.finish:null;cleanup();this.startPainter(state);
+   if(nextOnce&&el.ended)state.finish();
+  };
+  const attempt=()=>{
+   cancelFrame=null;if(!current()||el.currentSrc!==expectedSource)return;
+   if(this.copyFrame(el))commit();else cancelFrame=requestFrame(this.win,el,attempt);
+  };
+  const onError=()=>fail('video error');
+  const onReady=()=>{
+   if(!current()||ready||el.readyState<2||el.currentSrc!==expectedSource)return;
+   ready=true;el.removeEventListener('loadeddata',onReady);cancelFrame=requestFrame(this.win,el,attempt);
+   el.play()?.catch(()=>fail('video play rejected'));
+  };
+  this.presentationVideoCleanup=cleanup;el.onended=null;el.loop=!nextOnce;el.muted=true;el.autoplay=false;el.playsInline=true;
+  el.addEventListener('loadeddata',onReady);el.addEventListener('error',onError);timer=this.win.setTimeout(()=>fail('10s 超时'),10000);
+  el.src=this.assetBase+encodeURIComponent(next)+'.webm';expectedSource=el.src;el.load();
+ }
 }
 
 function createOwnedView(container,view,{assetURL,onDrag=()=>{},onInteractive=()=>{},desktop=false}={}) {
@@ -378,10 +367,12 @@ function createOwnedView(container,view,{assetURL,onDrag=()=>{},onInteractive=()
  const actor=doc.createElement('div');actor.style.cssText='position:absolute;inset:0;transform-origin:50% 80%;pointer-events:none';
  const videoA=doc.createElement('video'),videoB=doc.createElement('video');
  for(const v of [videoA,videoB]){v.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;pointer-events:none';actor.append(v);}
- const style=doc.createElement('style');style.textContent='.company-stage video.is-front{opacity:1!important}.company-hit{position:absolute;left:31.25%;top:13.88%;width:37.5%;height:79.17%;pointer-events:auto;touch-action:none;cursor:grab;background:none;border:0;padding:0}.company-hit:focus-visible{outline:2px solid #76a9b4;outline-offset:2px}';
+ const surface=doc.createElement('canvas');surface.className='company-pet-frame';surface.setAttribute('aria-hidden','true');surface.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';surface.width=surface.height=0;actor.append(surface);
+ const style=doc.createElement('style');style.textContent='.company-hit{position:absolute;left:31.25%;top:13.88%;width:37.5%;height:79.17%;pointer-events:auto;touch-action:none;cursor:grab;background:none;border:0;padding:0}.company-hit:focus-visible{outline:2px solid #76a9b4;outline-offset:2px}';
  const hit=doc.createElement('button');hit.type='button';hit.className='company-hit';hit.setAttribute('aria-label',view.pet.name+'，点击关心');
- stage.append(style,actor,hit);container.append(stage);
- const player=new OwnedVideoPlayer({videoA,videoB,pet:view.pet,assetBase:assetURL(view.pet.id,''),idle:view.animations.idle[0]});
+ stage.append(style,actor,hit);
+ const player=new OwnedVideoPlayer({videoA,videoB,surface,pet:view.pet,assetBase:assetURL(view.pet.id,''),idle:view.animations.idle[0]});
+ container.append(stage);
  const presentation=view.pet.presentation;
  let regions=[],drag=null,clicks=0,suppressClick=false,baseline=null,disposed=false;
  const feedback=createPetFeedback({actor,anchor:hit,...presentation,durationMs:presentation.closeSeconds*1000,onRegionsChange:r=>{regions=r;}});
@@ -394,10 +385,15 @@ function createOwnedView(container,view,{assetURL,onDrag=()=>{},onInteractive=()
  listen(hit,'click',e=>{if(suppressClick){suppressClick=false;return;}const id='click:'+view.pet.id+':'+(++clicks);feedback.show({eventId:id,text:'我在呢～',trigger:'click',via:e.detail===0?'keyboard':'pointer'});player.switchTo(view.animations.clicks[clicks%view.animations.clicks.length],true);});
  function interactive(e){const r=hit.getBoundingClientRect();onInteractive(Boolean(drag)||(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)||regions.some(r=>e.clientX>=r.x&&e.clientX<=r.x+r.width&&e.clientY>=r.y&&e.clientY<=r.y+r.height));}
  if(desktop){listen(win,'mousemove',interactive);listen(win,'mouseleave',()=>onInteractive(false));listen(win,'blur',()=>{endDrag();suppressClick=false;onInteractive(false);});}
+ function care(event){
+  const before=feedback.getState();feedback.show(event);const after=feedback.getState();
+  // A fallback text upgrade belongs to the same visible event; it must not replay video.
+  if(after.phase==='visible'&&(before.phase!=='visible'||after.eventId!==before.eventId))player.switchTo(view.animations.events.whisper[0],true);
+ }
  function update(state){if(disposed)return;const pet=state.pets?.[view.pet.id];if(!pet)return;if(baseline===null){baseline={say:pet.say?.counter,anim:pet.anim?.counter};return;}
   const say=pet.say,anim=pet.anim;
-  if(say&&say.counter!==baseline.say){baseline.say=say.counter;if(say.data?.text){feedback.show({text:say.data.text,eventId:say.data.feedback.eventId,trigger:'care'});player.switchTo(view.animations.events.whisper[0],true);}}
-  if(anim&&anim.counter!==baseline.anim){baseline.anim=anim.counter;if(anim.data){feedback.show({text:'我在呢～',eventId:anim.data.feedback.eventId,trigger:'care',fallback:true});player.switchTo(view.animations.events.whisper[0],true);}}
+  if(say&&say.counter!==baseline.say){baseline.say=say.counter;if(say.data?.text)care({text:say.data.text,eventId:say.data.feedback.eventId,trigger:'care'});}
+  if(anim&&anim.counter!==baseline.anim){baseline.anim=anim.counter;if(anim.data)care({text:'我在呢～',eventId:anim.data.feedback.eventId,trigger:'care',fallback:true});}
  }
  player.playIdle();
  return {update,consume(state){const pet=state?.pets?.[view.pet.id];if(pet)baseline={say:pet.say?.counter,anim:pet.anim?.counter};},destroy(){disposed=true;ac.abort();feedback.destroy();player.dispose();stage.remove();}};
