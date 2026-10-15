@@ -49,5 +49,241 @@
   ],
   "fullDependencyTypecheck": false,
   "dependencyTypesRegenerated": false,
-  "formalReleaseValidated": false
+  "formalReleaseValidated": false,
+  "continuousSamplingSupplement": {
+    "role": "orange",
+    "method": "Consecutive native getScreenshot calls, no inserted delay; exact PNG byte comparison for deduplication, every distinct image actually viewed",
+    "warmup": {
+      "captures": 24,
+      "durationMs": 1434,
+      "uniquePngs": 6
+    },
+    "idle": {
+      "captures": 48,
+      "durationMs": 3010,
+      "medianCaptureMs": 57,
+      "maximumCaptureMs": 326,
+      "uniquePngsAcrossBothIdleRuns": 6,
+      "additionalDistinctImagesInLongRun": 0,
+      "blankOrWholeBodyFadeObserved": false,
+      "flatteningObserved": false,
+      "captureEndMsAndImageId": [
+        [
+          326,
+          1
+        ],
+        [
+          384,
+          2
+        ],
+        [
+          439,
+          2
+        ],
+        [
+          499,
+          3
+        ],
+        [
+          558,
+          3
+        ],
+        [
+          615,
+          3
+        ],
+        [
+          674,
+          4
+        ],
+        [
+          732,
+          4
+        ],
+        [
+          789,
+          5
+        ],
+        [
+          843,
+          5
+        ],
+        [
+          899,
+          5
+        ],
+        [
+          957,
+          5
+        ],
+        [
+          1009,
+          5
+        ],
+        [
+          1065,
+          0
+        ],
+        [
+          1127,
+          0
+        ],
+        [
+          1182,
+          1
+        ],
+        [
+          1242,
+          1
+        ],
+        [
+          1299,
+          1
+        ],
+        [
+          1366,
+          2
+        ],
+        [
+          1424,
+          2
+        ],
+        [
+          1474,
+          3
+        ],
+        [
+          1529,
+          3
+        ],
+        [
+          1581,
+          3
+        ],
+        [
+          1637,
+          4
+        ],
+        [
+          1692,
+          4
+        ],
+        [
+          1750,
+          4
+        ],
+        [
+          1805,
+          5
+        ],
+        [
+          1869,
+          5
+        ],
+        [
+          1925,
+          5
+        ],
+        [
+          1982,
+          5
+        ],
+        [
+          2038,
+          5
+        ],
+        [
+          2092,
+          0
+        ],
+        [
+          2148,
+          0
+        ],
+        [
+          2211,
+          1
+        ],
+        [
+          2265,
+          1
+        ],
+        [
+          2324,
+          1
+        ],
+        [
+          2382,
+          2
+        ],
+        [
+          2438,
+          2
+        ],
+        [
+          2490,
+          2
+        ],
+        [
+          2548,
+          3
+        ],
+        [
+          2613,
+          3
+        ],
+        [
+          2664,
+          4
+        ],
+        [
+          2717,
+          4
+        ],
+        [
+          2775,
+          4
+        ],
+        [
+          2832,
+          5
+        ],
+        [
+          2891,
+          5
+        ],
+        [
+          2948,
+          5
+        ],
+        [
+          3010,
+          5
+        ]
+      ]
+    },
+    "postClick": {
+      "captures": 24,
+      "firstCaptureStartsAfterClickMs": 653,
+      "lastCaptureEndsAfterClickMs": 2295,
+      "medianCaptureMs": 67,
+      "maximumCaptureMs": 90,
+      "distinctImagesActuallyViewed": 24,
+      "blankOrWholeBodyFadeObserved": false,
+      "flatteningObserved": false
+    },
+    "firstClickTransitionCovered": false,
+    "frameAccurate60HzRecording": false,
+    "gpuDecodeTimingMeasured": false,
+    "completeHumanMotionAcceptance": false,
+    "memoryPressureBeforeAndAfter": "normal/raw1",
+    "ownedProcessesStopped": true,
+    "limitations": [
+      "Sampling intervals can miss a transient between captures; one idle capture took 326ms",
+      "The first post-click sample began at 653ms, leaving the initial source swap and 220ms pop unobserved",
+      "Native window PNGs do not isolate video decoder time or prove whole-desktop alpha/focus behavior",
+      "Only orange received consecutive sampling; silver and tide retain the prior finite basic-flow samples",
+      "The six source poses still make discrete changes; no interpolation was added"
+    ]
+  }
 }
