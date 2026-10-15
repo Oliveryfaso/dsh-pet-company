@@ -72,3 +72,9 @@ test('radio groups support arrow navigation and one tab stop per group',async()=
   await f.flush();assert.ok(prevented);assert.equal(focused,1);assert.equal(f.byRole('radio')[1].props['aria-checked'],true);
   f.unmount();
 });
+
+test('owned child plugin registers a separate overlay and disposes with the root',async()=>{
+ const f=fixture();await f.flush();assert.deepEqual(f.childPlugins,['pet-company-runtime-client']);
+ assert.deepEqual([...f.registeredSlots.keys()].sort(),['settings.section:dsh-pet-company','shell.overlay:pet-company-runtime']);
+ f.unmount();await f.flush();assert.equal(f.registeredSlots.size,0);assert.equal(f.timers.size,0);
+});

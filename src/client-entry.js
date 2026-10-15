@@ -6,6 +6,7 @@
     id: 'dsh-pet-company',
     factory: function (require) {
       /*__RENDERER_RELAY__*/
+      /*__OWNED_CLIENT__*/
       var React = require('react');
       var h = React.createElement;
       var DEFAULTS = { enabled: true, frequency: 'quiet', petId: 'main', character: 'silver', quietStart: '00:00', quietEnd: '08:00', minGapMinutes: 20, sitMinutes: 50, waterMinutes: 90, workMinutes: 120, lateAt: '23:30', sitting: true, water: true, work: true, late: true };
@@ -165,6 +166,7 @@
       return {
         name: 'dsh-pet-company', inject: ['slots','connection'],
         apply: function (ctx) {
+          ctx.plugin(createOwnedClientPlugin(React));
           ctx.effect(function () {
             var relay=createRendererRelay({rpc:ctx.connection.rpc});
             void relay.run();

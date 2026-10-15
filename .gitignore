@@ -46,3 +46,6 @@
 !/docs/qa/feedback/
 
 !/docs/qa/visual-stability/
+
+!/vendor/
+!/runtime/
