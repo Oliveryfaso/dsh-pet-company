@@ -1,0 +1,101 @@
+{
+  "scope": "Lightweight source-pixel inspection and fresh WebM headers only. No browser/host/video encode or full video decode ran during this investigation.",
+  "sourceFramesInspected": 171,
+  "sourceAtlasCount": 3,
+  "existingClipsChecked": 31,
+  "allByteIdenticalToPreviouslyFullyDecodedClips": true,
+  "allPriorExactFrameHoldsVerified": true,
+  "format": {
+    "width": 640,
+    "height": 360,
+    "codec": "VP9",
+    "alphaMode": 1,
+    "encodedFps": 100,
+    "holdTickMs": 10
+  },
+  "sourceTiming": {
+    "fullActionAverageLogicalFramesPerSecond": [
+      5.45,
+      7.55
+    ],
+    "shortestSourceHoldMs": 110,
+    "longestSourceHoldMs": 320,
+    "fastestLocalLogicalUpdateHz": 9.09,
+    "interpolatedFramesCreated": 0
+  },
+  "defaultIdles": {
+    "silver": {
+      "action": "idle",
+      "durationMs": 1100,
+      "logicalFrames": 6,
+      "averageLogicalFramesPerSecond": 5.45,
+      "sourceWidthRange": [
+        131,
+        141
+      ],
+      "sourceHeightRange": [
+        198,
+        198
+      ],
+      "loopLastToFirst": {
+        "alphaIoU": 0.9431,
+        "rgbRmsOnLightBackground": 29.63
+      }
+    },
+    "orange": {
+      "action": "review",
+      "durationMs": 1030,
+      "logicalFrames": 6,
+      "averageLogicalFramesPerSecond": 5.83,
+      "sourceWidthRange": [
+        106,
+        108
+      ],
+      "sourceHeightRange": [
+        189,
+        190
+      ],
+      "loopLastToFirst": {
+        "alphaIoU": 0.8161,
+        "rgbRmsOnLightBackground": 74.97
+      }
+    },
+    "tide": {
+      "action": "idle",
+      "durationMs": 1100,
+      "logicalFrames": 6,
+      "averageLogicalFramesPerSecond": 5.45,
+      "sourceWidthRange": [
+        162,
+        166
+      ],
+      "sourceHeightRange": [
+        198,
+        198
+      ],
+      "loopLastToFirst": {
+        "alphaIoU": 0.9621,
+        "rgbRmsOnLightBackground": 26.44
+      }
+    }
+  },
+  "pixelReview": "All three complete source contact sheets, default idles and orange comparison actually viewed. Source clipping/style discontinuities are preserved, not declared clean.",
+  "chosenMinimumFix": {
+    "orangeClicks": [
+      "care"
+    ],
+    "orangeCareAlias": "Byte-identical review.webm: 1030ms, 103 encoded frames, 6 source frames",
+    "orangeWhisper": [
+      "care"
+    ],
+    "orangeWorkStatusSuccess": "care",
+    "orangeWorkStatusFailure": "review",
+    "sourceWavingIdleJumpFailed": "Retained for explicitly labelled manual original previews"
+  },
+  "remaining": [
+    "Validate corrected runtime alpha/loop switching after memory pressure returns normal",
+    "Encoded 100fps does not increase source pose count",
+    "True playback smoothness and hardware decode behavior were not measured in this lightweight run"
+  ],
+  "allAliasBytesMatchSourceAction": true
+}

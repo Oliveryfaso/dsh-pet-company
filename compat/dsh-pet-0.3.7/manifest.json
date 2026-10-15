@@ -1,0 +1,145 @@
+{
+  "baseline": "dsh-pet@0.3.7 npm distribution",
+  "baselineScope": "20 source/runtime entries, including absence for original new files; not distribution lib",
+  "files": [
+    {
+      "path": "package.json",
+      "baselineSha256": "949e5a2715d77bb63db8b13d22cd8cdfe9d214897debb7d9b1c682f254ddb246",
+      "sha256": "eca39870e901fc95bc63931814069969bb53535a748f8d25e10347c5c88b93a4",
+      "bytes": 6619
+    },
+    {
+      "path": "runtime/electron-helper/events.js",
+      "baselineSha256": "6e2aeaccb0bf90d051b5df9f7fed27fd17ea5bd01cb6bf0eec1d3a166a05e8bf",
+      "sha256": "4423a1bbeff49f27e869747386ff586d505b357c74c99f762f22761c91bde63f",
+      "bytes": 16066
+    },
+    {
+      "path": "runtime/electron-helper/feedback-helper.js",
+      "baselineSha256": null,
+      "sha256": "5b975ff37956d2729e61e0627720dd438d32f404ab1c0542444aa44568022696",
+      "bytes": 17455
+    },
+    {
+      "path": "runtime/electron-helper/index.html",
+      "baselineSha256": "c705ed22e31d92be3bee8423015fed5f0307ec699763384280714601cb30d710",
+      "sha256": "46db88474168a65d159005b121370b18197a6b4ef4f8bf13b64d987e3578be19",
+      "bytes": 5888
+    },
+    {
+      "path": "runtime/electron-helper/renderer.js",
+      "baselineSha256": "819aab206d2c7e5d7d88e5b40085e8f092e60f1b168f72ee1f29f27e4291e4c9",
+      "sha256": "038f4daa3defc38944611416ea7517ce4efb512a1e65179f65c29933764d355e",
+      "bytes": 7048
+    },
+    {
+      "path": "runtime/electron-helper/shared-core.js",
+      "baselineSha256": "c9c8b555001a8246effa15b80ecb20ba09633e9195b15bc6146272b6f0f77459",
+      "sha256": "ced94bdf02209d7d99b9e3860a136b1c29a138366bbc2423cb3292f88baf68cd",
+      "bytes": 55235
+    },
+    {
+      "path": "runtime/electron-helper/sprite.js",
+      "baselineSha256": "c26741a10277ad741587f933eaea692a7b8bffa2c65357a255569c39ac48ad19",
+      "sha256": "a6f8f86b1fc103703709a3403d3654bf258d9f90f0fab9f5e74cd933b27275c9",
+      "bytes": 80021
+    },
+    {
+      "path": "scripts/build-feedback-helper.mjs",
+      "baselineSha256": null,
+      "sha256": "c5374fa99352c5aa070e812e38f82bb9034ded318b47ea583b2d92ca27d50960",
+      "bytes": 1231
+    },
+    {
+      "path": "src/client/pet.ts",
+      "baselineSha256": "9812dc4e9cbfc89486cc13fb158ad5ffda1d0c54c37c4d8e4cc12c5d5487be57",
+      "sha256": "f18204c2e11e518a29b21cb82ea8da53007ea2018812cbb5f5d30fdc64b07302",
+      "bytes": 101283
+    },
+    {
+      "path": "src/client/settings.ts",
+      "baselineSha256": "c77f80411447067acff3501aecdc1d1600ddd17228db2e735aa83c665004d8a9",
+      "sha256": "b6a1eac903a6dbd762eaf1e59c7d2dafa0216960d3d04e6f95b6b1990f92f8a2",
+      "bytes": 107834
+    },
+    {
+      "path": "src/host/config.ts",
+      "baselineSha256": "ee34ca6f193dc9be41b14c912d0f082218c83a06685f5950ca965cfe119c14b2",
+      "sha256": "d311ffb976f3fe25207a94d2221f2e216fb851cb4fde8f15326d7b96601be254",
+      "bytes": 41627
+    },
+    {
+      "path": "src/host/feedback.ts",
+      "baselineSha256": null,
+      "sha256": "c6c93733ab1ac1a87d3b8fdd47ea6995cec661299de030d73d161d436b10e166",
+      "bytes": 491
+    },
+    {
+      "path": "src/host/index.ts",
+      "baselineSha256": "2cf71aa916f54f55567717834f5062f58ddd2e9fb84d57b953b8e6ea182ae6a5",
+      "sha256": "7bd8571f8251de105c1edc363b735d7d72880349ba68eb34762a15025d0d64ab",
+      "bytes": 87774
+    },
+    {
+      "path": "src/shared/feedback/feedback-core.mjs",
+      "baselineSha256": null,
+      "sha256": "354cd271d8067b542425b6579e463cf503cc86000318a4ef9bdb1f67fdd111da",
+      "bytes": 4233
+    },
+    {
+      "path": "src/shared/feedback/feedback-dom.d.mts",
+      "baselineSha256": null,
+      "sha256": "0098e4a48fd43826f381099899a2aada2c8dc60da9cd7fd5e722baa682b70076",
+      "bytes": 1300
+    },
+    {
+      "path": "src/shared/feedback/feedback-dom.mjs",
+      "baselineSha256": null,
+      "sha256": "4989b96ac749c0e8337edf784a3e5d413f4bec19cba43337d575c80e2b0c24c1",
+      "bytes": 9646
+    },
+    {
+      "path": "src/shared/feedback/feedback-styles.mjs",
+      "baselineSha256": null,
+      "sha256": "23590a57e4fde69aa96a62f3e086a12ffcff31f88e483867b2f6280ed1215d57",
+      "bytes": 3527
+    },
+    {
+      "path": "src/shared/feedback/feedback.css",
+      "baselineSha256": null,
+      "sha256": "35d73763899bb13fba307abf7754b5dab6438da9ead44dc6b001b0014b51b94d",
+      "bytes": 3417
+    },
+    {
+      "path": "src/shared/state.ts",
+      "baselineSha256": "41cc2ab7b6cc7abb66e998da744a293fb86980f9db4825bbc082685d355440b5",
+      "sha256": "d39f85fbfb582d89353861d43bdb8dd1343ac52dcff67d0a1195163aca9edeb2",
+      "bytes": 8183
+    },
+    {
+      "path": "src/shared/types.ts",
+      "baselineSha256": "0b1160d2234961f52f8e6b1695dee2c2d3197fc41d4e56bee6b9aa00e7867d68",
+      "sha256": "f4f03feb1dfb5f52c8583c2cc22dd6e9eedf4e879135ed20e454233070de9ab0",
+      "bytes": 10806
+    }
+  ],
+  "patchSha256": "96f25e04bd2edfdd1dac7e932534b3b06c65df9584f4271bf08a1e04222aa9c2",
+  "testFixtureSharedCore": {
+    "origin": "official build-desktop-core output",
+    "sha256": "4f64ff648319e64f43c072c06816346d6283220986e23f45acaa78c9b7232dc5",
+    "matchesTemporaryPackageRuntime": true
+  },
+  "temporaryValidation": {
+    "sourcePatchApplyCheck": true,
+    "officialRuntimeBuild": true,
+    "candidateInstalledInIsolatedProfile": true,
+    "installedRuntimeEntriesVerified": 10,
+    "installedCompanyEntriesVerified": 7,
+    "uiStartedAfterVideoFix": true,
+    "fullTypecheck": false,
+    "typesRegenerated": false,
+    "realRendererBasicFlowsValidated": true,
+    "realRendererValidationScope": "Single-pet native idle/click/explicit-care/return screenshot samples; not continuous frame recording",
+    "fullNativeInputAndCrossDisplayValidation": false
+  }
+}

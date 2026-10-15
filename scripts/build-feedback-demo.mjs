@@ -1,0 +1,17 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import path from 'node:path';
+const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const modules=path.join(root,'compat/dsh-pet-feedback');
+const output=path.join(root,'docs/qa/feedback');
+const css=await readFile(path.join(modules,'feedback.css'),'utf8');
+await writeFile(path.join(modules,'feedback-styles.mjs'),'// Generated from feedback.css.\nexport const FEEDBACK_CSS='+JSON.stringify(css)+';\n');
+const strip=source=>source.replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
+const core=strip(await readFile(path.join(modules,'feedback-core.mjs'),'utf8'));
+const dom=strip(await readFile(path.join(modules,'feedback-dom.mjs'),'utf8'));
+const images=Object.fromEntries(['silver','orange','tide'].map(theme=>[theme,'../../../assets/characters/'+theme+'.png']));
+let html=await readFile(path.join(modules,'demo.template.html'),'utf8');
+const bundle=`(()=>{const FEEDBACK_CSS=${JSON.stringify(css)};\n${core}\n${dom}\nwindow.DSHFeedback={createPetFeedback,placeCloud,motionKeyframes};\n})();`;
+html=html.replace('/* FEEDBACK_BUNDLE */',bundle.replace(/<\/script/gi,'<\\/script')).replace('/* CHARACTER_DATA */',JSON.stringify(images));
+await mkdir(output,{recursive:true});await writeFile(path.join(output,'demo.html'),html);
+console.log('Generated docs/qa/feedback/demo.html using licensed previews already in assets/characters.');

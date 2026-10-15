@@ -1,0 +1,2105 @@
+--- a/package.json
++++ b/package.json
+@@ -88,7 +88,9 @@
+     "lint": "eslint .",
+     "format": "prettier --write .",
+     "format:check": "prettier --check .",
+-    "test:ui": "node --test scripts/tests/*.test.mjs"
++    "test:ui": "node --test scripts/tests/*.test.mjs",
++    "build:feedback-helper": "node scripts/build-feedback-helper.mjs",
++    "prebuild": "npm run build:feedback-helper"
+   },
+   "license": "MIT",
+   "engines": {
+--- a/runtime/electron-helper/events.js
++++ b/runtime/electron-helper/events.js
+@@ -25,11 +25,15 @@
+     // 触发；而这里不切动画（原设计"由常规动画链回待机"），链因此拿不到推进信号 —— 宠物会一直卡在
+     // 那段工作动画上。只把当前段改成播完即停：它结束后走 handleEnded → resumeWorkStatusAnim() 返回
+     // false → playIdle；工作期间的原生 loop 不受影响。
+-    if (S.poolIncludes(this.animations.events?.workStatus ?? [], this.anim)) {
++    const committed = this.presentation && this.presentationFront;
++    if (S.poolIncludes(this.animations.events?.workStatus ?? [], committed ? committed.anim : this.anim)) {
+       const frontEl = this.front === 0 ? this.videoA : this.videoB;
+       if (frontEl) {
+         frontEl.loop = false;
+-        frontEl.onended = () => this.handleEnded();
++        if (committed && committed.element === frontEl) {
++          committed.once = true;
++          frontEl.onended = committed.finish;
++        } else frontEl.onended = () => this.handleEnded();
+       }
+     }
+     // 空闲：收起常驻气泡
+@@ -87,6 +91,7 @@
+         }, BUBBLE_DURATION_MS)
+       : null; // 非终态：常驻，不设自动收起
+   }
++  if (terminal && this.workOn && this.workText && this.feedback) this.feedback.close();
+   this.renderBubble();
+   // 循环语义（与浏览器 setOnce 一致）：终态播一遍回 idle；非终态多候选档位播一遍 →
+   // ended 由 sprite.handleEnded 轮换到下一候选（长时间状态不单段重复）；非终态单候选档位无限循环。
+@@ -127,7 +132,8 @@
+ 
+ // 碎碎念展示（本宠物）：随机抽 events.whisper 动画 + 弹文本气泡（10s 消失，与余额同一语义）
+ // image：host 随机抽定的配图名称（未开配图/池为空则空串，与浏览器端同一契约）
+-PetSprite.prototype.showWhisper = function showWhisper(text, image) {
++PetSprite.prototype.showWhisper = function showWhisper(text, image, feedbackCue) {
++  if (this.feedback) this.showPresentation(text, feedbackCue?.feedback?.eventId || ('say:' + this.pet.id + ':' + feedbackCue?.counter), 'care');
+   const pool = this.animations.events?.whisper;
+   if (!pool || pool.length === 0) {
+     console.error('[dsh-pet] 配置缺少 animations.events.whisper，无法播放碎碎念动画');
+@@ -148,7 +154,7 @@
+       (image ? ' [' + image + ']' : ''),
+   );
+   this.stopMove();
+-  this.whisperOn = true;
++  this.whisperOn = !this.feedback;
+   this.whisperView = S.whisperBubbleView({ ok: true, text, ts: 0 });
+   this.whisperImage = typeof image === 'string' ? image : '';
+   this.renderBubble();
+@@ -233,7 +239,7 @@
+   const said = S.readSay(leaf);
+   if (!said) return;
+   for (const s of sprites) {
+-    if (s.pet.id === petId) s.showWhisper(said.text, said.image);
++    if (s.pet.id === petId) s.showWhisper(said.text, said.image, { feedback: said.feedback, counter: leaf.counter });
+   }
+ }
+ 
+@@ -249,11 +255,11 @@
+  *  复用**右键菜单同一个处理函数** onMenuAction，所以镜像修正 / 移动类走真实位移 /
+  *  其余播一遍的语义与菜单点一下完全一致，这里不重写一遍。
+  *  petId 由路径解析出来（pets.<id>.anim）；本窗口只装一只宠物，按 id 命中即可。 */
+-function applyAnimLeaf(petId, leaf) {
++function applyAnimLeaf(petId, leaf, suppressFeedbackForSay = false) {
+   const hit = S.readAnim(leaf);
+   if (!hit) return;
+   for (const s of sprites) {
+-    if (s.pet.id === petId) s.onMenuAction({ label: hit.name, anim: hit.name });
++    if (s.pet.id === petId) s.onMenuAction({ label: hit.name, anim: hit.name }, { feedback: hit.feedback, counter: leaf.counter, suppressFeedbackForSay });
+   }
+ }
+ 
+@@ -266,7 +272,11 @@
+       stateBaseline = S.flattenCounters(s); // 首拉：只记基线，不渲染（避免启动/重载时重放旧气泡）
+       return;
+     }
+-    for (const change of S.takeChanged(s, stateBaseline)) {
++    const changes = S.takeChanged(s, stateBaseline);
++    const sayPets = new Set(changes.filter((c) => c.path.startsWith('pets.') && c.path.endsWith('.say') && S.readSay(c.leaf))
++      .map((c) => c.path.slice('pets.'.length, -'.say'.length)));
++    changes.sort((a, b) => Number(b.path.endsWith('.say')) - Number(a.path.endsWith('.say')));
++    for (const change of changes) {
+       if (change.leaf.data === null) continue;
+       if (change.path === 'sections.balance') applyBalanceLeaf(change.leaf);
+       else if (change.path === 'sections.workStatus') applyWorkStatusLeaf(change.leaf);
+@@ -275,7 +285,8 @@
+         applySayLeaf(change.path.slice('pets.'.length, -'.say'.length), change.leaf);
+       } else if (change.path.startsWith('pets.') && change.path.endsWith('.anim')) {
+         // 点播动画：同样按前缀/后缀切片（counter 每次写入都递增，连点两次也会分发两次）
+-        applyAnimLeaf(change.path.slice('pets.'.length, -'.anim'.length), change.leaf);
++        const petId = change.path.slice('pets.'.length, -'.anim'.length);
++        applyAnimLeaf(petId, change.leaf, sayPets.has(petId));
+       }
+     }
+   } catch {
+--- a/runtime/electron-helper/feedback-helper.js
++++ b/runtime/electron-helper/feedback-helper.js
+@@ -0,0 +1,182 @@
++// Generated by scripts/build-feedback-helper.mjs; edit src/shared/feedback instead.
++(function(){
++'use strict';
++// feedback-styles.mjs
++// Generated from feedback.css by build-demo.mjs.
++const FEEDBACK_CSS=".dsh-feedback-cloud{--fb-fill:#fffaff;--fb-line:#d7c9e7;--fb-ink:#62506f;--fb-shadow:#51405f20;position:fixed;box-sizing:border-box;padding:14px 2px 14px;z-index:2147482900;width:max-content;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(4px) scale(.985);transform-origin:var(--fb-tail-x,50%) bottom;transition:opacity 110ms ease-out,transform 160ms cubic-bezier(.22,1,.36,1),visibility 0s 110ms;font:14px/1.6 \"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;color:var(--fb-ink)}\n.dsh-feedback-cloud[data-theme=orange]{--fb-fill:#fff8ed;--fb-line:#e8c99f;--fb-ink:#79533c;--fb-shadow:#80502e1c}\n.dsh-feedback-cloud[data-theme=tide]{--fb-fill:#f3fbff;--fb-line:#b0d3e2;--fb-ink:#37657a;--fb-shadow:#285f751c}\n.dsh-feedback-cloud[data-open=true]{opacity:1;visibility:visible;transform:translateY(0) scale(1);transition-delay:0s}\n.dsh-feedback-cloud[data-placement=below]{transform-origin:var(--fb-tail-x,50%) top}\n.dsh-feedback-cloud *{box-sizing:border-box}\n.dsh-feedback-cloud .fb-body{position:relative;min-height:52px;padding:15px 38px 15px 18px;border:1.5px solid var(--fb-line);border-radius:23px 26px 22px 25px;background:var(--fb-fill);box-shadow:0 4px 14px var(--fb-shadow)}\n.dsh-feedback-cloud .fb-lobes{position:absolute;inset:0;pointer-events:none}\n.dsh-feedback-cloud .fb-lobes i{position:absolute;top:-12px;left:18%;width:35px;height:16px;border:1.5px solid var(--fb-line);border-bottom:0;border-radius:50% 50% 0 0 / 100% 100% 0 0;background:var(--fb-fill)}\n.dsh-feedback-cloud .fb-lobes i:nth-child(2){left:40%;top:-13px;width:48px;height:17px}\n.dsh-feedback-cloud .fb-lobes i:nth-child(3){left:66%;top:-9px;width:29px;height:13px}\n.dsh-feedback-cloud .fb-text{position:relative;white-space:normal;overflow-wrap:anywhere;overflow:auto;max-height:var(--fb-text-height,160px);overscroll-behavior:contain;scrollbar-width:thin}\n.dsh-feedback-cloud .fb-close{position:absolute;right:7px;top:8px;width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--fb-ink);font:20px/1 system-ui,sans-serif;cursor:pointer;pointer-events:none;opacity:.65;padding:0}\n.dsh-feedback-cloud[data-open=true] .fb-close{pointer-events:auto}\n.dsh-feedback-cloud[data-open=true][data-scrollable=true] .fb-text{pointer-events:auto}\n.dsh-feedback-cloud .fb-close:hover{background:color-mix(in srgb,var(--fb-line) 28%,transparent);opacity:1}\n.dsh-feedback-cloud .fb-close:focus-visible{outline:2px solid var(--fb-ink);outline-offset:1px}\n.dsh-feedback-cloud .fb-tail{position:absolute;width:12px;height:10px;left:calc(var(--fb-tail-x,50%) - 6px);bottom:8px;background:var(--fb-fill);border:1.5px solid var(--fb-line);border-radius:50%;pointer-events:none}\n.dsh-feedback-cloud .fb-tail:after{content:\"\";position:absolute;width:5px;height:5px;left:4px;top:11px;border:1px solid var(--fb-line);border-radius:50%;background:var(--fb-fill)}\n.dsh-feedback-cloud[data-placement=below] .fb-tail{bottom:auto;top:8px}\n.dsh-feedback-cloud[data-placement=below] .fb-tail:after{top:auto;bottom:11px}\n@media(prefers-reduced-motion:reduce){.dsh-feedback-cloud{transform:none;transition:opacity 100ms linear,visibility 0s 100ms}.dsh-feedback-cloud[data-open=true]{transform:none;transition-delay:0s}}\n\n.dsh-feedback-cloud[data-reduced=true]{transform:none;transition:opacity 100ms linear,visibility 0s 100ms}.dsh-feedback-cloud[data-reduced=true][data-open=true]{transform:none;transition-delay:0s}\n";
++
++// feedback-core.mjs
++/** Renderer-independent feedback state and placement. All geometry uses one CSS/DIP coordinate system. */
++const clamp=(n,min,max)=>Math.min(Math.max(n,min),max);
++const finite=(value,fallback)=>Number.isFinite(Number(value))?Number(value):fallback;
++function normalizeFeedback(raw,options={}){
++ if(!raw||typeof raw!=='object')return null;
++ const eventId=String(raw.eventId??'').trim();
++ if(!eventId||Array.from(eventId).length>200)return null;
++ const limit=Math.trunc(clamp(finite(options.maxCharacters,120),1,500));
++ let text=String(raw.text??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/gu,'').replace(/\s+/gu,' ').trim();
++ const chars=Array.from(text);if(chars.length>limit)text=chars.slice(0,Math.max(0,limit-1)).join('')+'…';
++ if(!text)return null;
++ return {eventId,text,fallback:raw.fallback===true,trigger:raw.trigger==='click'?'click':'care',via:raw.via==='keyboard'?'keyboard':'pointer',durationMs:clamp(finite(raw.durationMs,finite(options.durationMs,8000)),250,60000)};
++}
++function createFeedbackState(options={}){
++ return {phase:'hidden',eventId:null,text:'',fallback:false,expiresAt:0,seenIds:[],documentHidden:false,suppressClickUntil:0,options:{durationMs:options.durationMs,maxCharacters:options.maxCharacters}};
++}
++const clear=(state,phase='hidden')=>({...state,phase,eventId:null,text:'',fallback:false,expiresAt:0});
++function reduceFeedback(state,action,now=0){
++ if(state.phase==='destroyed')return state;
++ if(action.type==='destroy')return {...clear(state,'destroyed'),seenIds:[]};
++ if(action.type==='dragstart')return clear(state,'dragging');
++ if(action.type==='dragend')return {...clear(state),suppressClickUntil:now+300};
++ if(action.type==='background')return {...(action.hidden?clear(state):state),documentHidden:Boolean(action.hidden)};
++ if(action.type==='close')return state.phase==='visible'?clear(state):state;
++ if(action.type==='expire')return state.phase==='visible'&&now>=state.expiresAt?clear(state):state;
++ if(action.type!=='show')return state;
++ const event=normalizeFeedback(action.event,state.options);
++ if(!event)return state;
++ if(state.seenIds.includes(event.eventId)){
++  if(state.phase==='visible'&&state.eventId===event.eventId&&now<state.expiresAt&&state.fallback&&!event.fallback)return {...state,text:event.text,fallback:false};
++  return state;
++ }
++ const seenIds=[...state.seenIds,event.eventId].slice(-64);
++ if(state.documentHidden||state.phase==='dragging'||(event.trigger==='click'&&now<state.suppressClickUntil))return {...state,seenIds};
++ return {...state,phase:'visible',eventId:event.eventId,text:event.text,fallback:event.fallback,expiresAt:now+event.durationMs,seenIds};
++}
++function rect(value){
++ if(!value)return null;
++ const x=Number(value.x??value.left),y=Number(value.y??value.top),width=Number(value.width),height=Number(value.height);
++ return [x,y,width,height].every(Number.isFinite)&&width>0&&height>0?{x,y,width,height}:null;
++}
++function placeCloud({anchor,bubble,viewport,padding=12,gap=12}={}){
++ anchor=rect(anchor);viewport=rect(viewport);
++ if(!anchor||!viewport||!bubble||![bubble.width,bubble.height].every(v=>Number.isFinite(v)&&v>0))return null;
++ padding=clamp(finite(padding,12),0,Math.min(viewport.width,viewport.height)/4);
++ gap=Math.max(0,finite(gap,12));
++ const maxWidth=viewport.width-2*padding,maxHeight=viewport.height-2*padding;
++ const width=Math.min(bubble.width,maxWidth),height=Math.min(bubble.height,maxHeight);
++ const minX=viewport.x+padding,minY=viewport.y+padding,maxX=viewport.x+viewport.width-padding,maxY=viewport.y+viewport.height-padding;
++ const above=anchor.y-gap-height,below=anchor.y+anchor.height+gap;
++ const placement=above>=minY?'above':below+height<=maxY?'below':(anchor.y-minY>=maxY-(anchor.y+anchor.height)?'above':'below');
++ const x=clamp(anchor.x+anchor.width/2-width/2,minX,maxX-width);
++ const y=clamp(placement==='above'?above:below,minY,maxY-height);
++ const tailPadding=Math.min(18,width/2);
++ const tailX=clamp(anchor.x+anchor.width/2-x,tailPadding,width-tailPadding);
++ return {x,y,width,height,placement,tailX,maxWidth,maxHeight};
++}
++function motionKeyframes(reduced=false){
++ return reduced?[]:[{scale:1,offset:0},{scale:.97,offset:.32},{scale:1.01,offset:.72},{scale:1,offset:1}];
++}
++
++// feedback-dom.mjs
++
++
++/** Needs a DEDICATED actor wrapper; keep upstream mirror/video/hitbox transforms inside it.
++ * getViewport returns a rectangle in the same CSS/DIP coordinate system as getBoundingClientRect.
++ * Desktop adapters must use helper-window ∩ current work-area and existing input-region IPC.
++ * This module never calls focus, captures keyboard input globally, opens windows or speaks.
++ */
++function createPetFeedback({actor,anchor=actor,theme='silver',pop=true,cloud=true,portal,durationMs=8000,maxCharacters=120,maxWidth=280,padding=12,getViewport,onRegionsChange=()=>{}}={}){
++ if(!actor?.ownerDocument||!anchor?.getBoundingClientRect)throw new TypeError('An actor wrapper and measurable anchor are required');
++ const doc=actor.ownerDocument,win=doc.defaultView;
++ if(!win)throw new TypeError('The actor needs a renderer window');
++ if(!doc.querySelector('style[data-dsh-feedback-css]')){const style=doc.createElement('style');style.dataset.dshFeedbackCss='';style.textContent=FEEDBACK_CSS;doc.head.append(style);}
++ const bubble=doc.createElement('div');bubble.className='dsh-feedback-cloud';bubble.dataset.open='false';bubble.setAttribute('aria-hidden','true');
++ const body=doc.createElement('div');body.className='fb-body';
++ const lobes=doc.createElement('span');lobes.className='fb-lobes';lobes.setAttribute('aria-hidden','true');for(let i=0;i<3;i++)lobes.append(doc.createElement('i'));
++ const text=doc.createElement('div');text.className='fb-text';text.setAttribute('role','status');text.setAttribute('aria-live','polite');text.setAttribute('aria-atomic','true');
++ const close=doc.createElement('button');close.className='fb-close';close.type='button';close.tabIndex=-1;close.textContent='×';close.setAttribute('aria-label','关闭提醒');
++ const tail=doc.createElement('span');tail.className='fb-tail';tail.setAttribute('aria-hidden','true');body.append(lobes,text,close);bubble.append(body,tail);(portal||doc.body).append(bubble);
++ let state=createFeedbackState({durationMs,maxCharacters}),timer=null,frame=null,motion=null,disposed=false,lastRect='',lastViewport='',measured=null,lastRegions='';
++ let reducedOverride=false,popEnabled=pop!==false,cloudEnabled=cloud!==false,layoutAvailable=true;
++ const reduced=win.matchMedia('(prefers-reduced-motion: reduce)');
++ const now=()=>win.performance.now();
++ const active=()=>state.phase==='visible';
++ const visible=()=>active()&&cloudEnabled&&layoutAvailable;
++ const themeName=value=>['silver','orange','tide'].includes(value)?value:'silver';
++ bubble.dataset.theme=themeName(theme);
++ const viewport=()=>{if(getViewport)return getViewport();const v=win.visualViewport;return {x:v?.offsetLeft||0,y:v?.offsetTop||0,width:v?.width||win.innerWidth,height:v?.height||win.innerHeight};};
++ const bounds=element=>{const r=element.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
++ function interactiveRects(){if(!visible())return [];const regions=[bounds(close)];if(bubble.dataset.scrollable==='true')regions.push(bounds(text));return regions;}
++ function notifyRegions(){const regions=interactiveRects();const key=JSON.stringify([visible(),regions]);if(key!==lastRegions){lastRegions=key;onRegionsChange(regions,visible());}}
++ function cancelMotion(){if(motion){motion.cancel();motion=null;}}
++ function animate(event){
++  if(!popEnabled||reduced.matches||reducedOverride||event?.via==='keyboard'||typeof actor.animate!=='function'){cancelMotion();return;}
++  // A dedicated wrapper owns scale. Cancel the old effect; never concatenate transforms or animations.
++  let start=1;try{const value=win.getComputedStyle(actor).transform;if(value&&value!=='none')start=Math.hypot(...value.match(/matrix\(([^)]+)\)/)?.[1].split(',').slice(0,2).map(Number));}catch{}
++  if(!Number.isFinite(start))start=1;
++  cancelMotion();
++  const keyframes=motionKeyframes(false).map((f,i)=>({transform:`scale(${i===0?start:f.scale})`,offset:f.offset}));
++  motion=actor.animate(keyframes,{duration:220,easing:'cubic-bezier(.22,1,.36,1)'});
++  const current=motion;current.onfinish=()=>{if(motion===current)motion=null;};
++ }
++ function measure(){
++  if(disposed||!visible())return;
++  const v=viewport();if(!v||!Number.isFinite(v.width)||!Number.isFinite(v.height)||v.width<=0||v.height<=0)return;
++  const key=[v.x,v.y,v.width,v.height].join(',');
++  if(key!==lastViewport||!measured){
++   const availableWidth=Math.max(1,v.width-2*Math.min(padding,v.width/4));
++   const availableHeight=Math.max(1,v.height-2*Math.min(padding,v.height/4));
++   bubble.style.maxWidth=Math.min(maxWidth,availableWidth)+'px';bubble.style.minWidth=Math.min(140,availableWidth)+'px';
++   bubble.style.setProperty('--fb-text-height',Math.max(20,availableHeight-62)+'px');
++   measured={width:bubble.offsetWidth,height:bubble.offsetHeight};lastViewport=key;
++  }
++  const result=placeCloud({anchor:bounds(anchor),bubble:measured,viewport:v,padding});if(!result)return;
++  const rectKey=[result.x,result.y,result.tailX,result.placement].join(',');
++  if(rectKey!==lastRect){bubble.style.left=result.x+'px';bubble.style.top=result.y+'px';bubble.style.setProperty('--fb-tail-x',result.tailX+'px');bubble.dataset.placement=result.placement;lastRect=rectKey;}
++  bubble.dataset.scrollable=String(text.scrollHeight>text.clientHeight+1);
++  notifyRegions();
++ }
++ function scheduleExpiry(){if(timer!==null)win.clearTimeout(timer);timer=win.setTimeout(()=>{timer=null;if(!apply({type:'expire'})&&active())scheduleExpiry();},Math.max(1,Math.ceil(state.expiresAt-now())));}
++ function track(){frame=null;if(disposed||!visible())return;measure();frame=win.requestAnimationFrame(track);}
++ function reposition(){const v=viewport();layoutAvailable=Boolean(v&&Number.isFinite(v.width)&&Number.isFinite(v.height)&&v.width>=96&&v.height>=112);syncVisibility();measured=null;lastViewport='';lastRect='';if(visible()){measure();if(frame===null)frame=win.requestAnimationFrame(track);}else{if(frame!==null){win.cancelAnimationFrame(frame);frame=null;}notifyRegions();}}
++ function syncVisibility(){bubble.dataset.open=String(visible());bubble.setAttribute('aria-hidden',String(!visible()));close.tabIndex=visible()?0:-1;}
++ function renderBubble(){if(active()&&cloudEnabled)reposition();else{syncVisibility();if(frame!==null){win.cancelAnimationFrame(frame);frame=null;}notifyRegions();}}
++ function apply(action,event){
++  if(disposed)return false;
++  const before=state;state=reduceFeedback(state,action,now());if(state===before)return false;
++  if(timer!==null){win.clearTimeout(timer);timer=null;}
++  if(active()){
++   text.textContent=state.text;renderBubble();scheduleExpiry();
++   if(action.type==='show'&&state.eventId!==before.eventId)animate(event);
++  }else{
++   renderBubble();cancelMotion();
++  }
++  return true;
++ }
++ close.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();});
++ close.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();apply({type:'close'});});
++ close.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();apply({type:'close'});}});
++ const onVisibility=()=>apply({type:'background',hidden:doc.hidden});
++ const onReduced=()=>{bubble.dataset.reduced=String(reduced.matches||reducedOverride);if(reduced.matches||reducedOverride)cancelMotion();};onReduced();
++ const onLayout=()=>reposition();
++ doc.addEventListener('visibilitychange',onVisibility);win.addEventListener('resize',onLayout);win.addEventListener('scroll',onLayout,{passive:true,capture:true});
++ win.visualViewport?.addEventListener('resize',onLayout);win.visualViewport?.addEventListener('scroll',onLayout);
++ reduced.addEventListener?.('change',onReduced);
++ let dprQuery=null;
++ const onDpr=()=>{dprQuery?.removeEventListener?.('change',onDpr);dprQuery=win.matchMedia(`(resolution: ${win.devicePixelRatio}dppx)`);dprQuery.addEventListener?.('change',onDpr);reposition();};onDpr();
++ const observer=typeof win.ResizeObserver==='function'?new win.ResizeObserver(()=>reposition()):null;observer?.observe(body);observer?.observe(anchor);
++ doc.fonts?.ready.then(()=>{if(!disposed)reposition();});
++ if(doc.hidden)onVisibility();
++ return {
++  show(event){return apply({type:'show',event},event);},
++  close(){return apply({type:'close'});},
++  dragStart(){return apply({type:'dragstart'});},
++  dragEnd(){return apply({type:'dragend'});},
++  reposition,
++  getState(){return {...state,seenIds:[...state.seenIds],options:{...state.options}};},
++  getInteractiveRects:interactiveRects,
++  setTheme(value){bubble.dataset.theme=themeName(value);},
++  setReducedMotion(value){reducedOverride=Boolean(value);onReduced();},
++  setPresentation(value={}){if(disposed)return;if(value.theme!==undefined)bubble.dataset.theme=themeName(value.theme);if(typeof value.pop==='boolean'){popEnabled=value.pop;if(!popEnabled)cancelMotion();}if(typeof value.cloud==='boolean')cloudEnabled=value.cloud;if(Number.isFinite(value.closeSeconds))state={...state,options:{...state.options,durationMs:Math.min(60000,Math.max(250,value.closeSeconds*1000))}};renderBubble();},
++  get element(){return bubble;},
++  destroy(){
++   if(disposed)return;apply({type:'destroy'});disposed=true;observer?.disconnect();
++   doc.removeEventListener('visibilitychange',onVisibility);win.removeEventListener('resize',onLayout);win.removeEventListener('scroll',onLayout,true);
++   win.visualViewport?.removeEventListener('resize',onLayout);win.visualViewport?.removeEventListener('scroll',onLayout);
++   reduced.removeEventListener?.('change',onReduced);dprQuery?.removeEventListener?.('change',onDpr);bubble.remove();
++  },
++ };
++}
++
++globalThis.PetFeedback = Object.freeze({ createPetFeedback });
++})();
+--- a/runtime/electron-helper/index.html
++++ b/runtime/electron-helper/index.html
+@@ -168,6 +168,7 @@
+          桌面端同模式拆分：constants（基础设施）→ sprite（宠物本体）→ events（事件联动）→ renderer（启动入口） -->
+     <script src="./shared-core.js"></script>
+     <script src="./constants.js"></script>
++    <script src="./feedback-helper.js"></script>
+     <script src="./sprite.js"></script>
+     <script src="./events.js"></script>
+     <script src="./renderer.js"></script>
+--- a/runtime/electron-helper/renderer.js
++++ b/runtime/electron-helper/renderer.js
+@@ -120,7 +120,7 @@
+ if (window.petBridge && window.petBridge.onDisplays) {
+   window.petBridge.onDisplays((geo) => {
+     if (!applyDeskGeometry(geo)) return;
+-    for (const s of sprites) s.relayout();
++    for (const s of sprites) { s.relayout(); if (s.feedback) s.feedback.reposition(); }
+   });
+ }
+ 
+@@ -130,6 +130,7 @@
+ // 那正好落在拖拽/飞行过程中，不设防就会看到宠物瞬间跳回上一个落点。
+ window.addEventListener('resize', () => {
+   for (const s of sprites) {
++    if (s.feedback) s.feedback.reposition();
+     if (s.dragState.active || s.throwRef !== null || s.moveRef !== null) continue;
+     s.position();
+   }
+--- a/runtime/electron-helper/shared-core.js
++++ b/runtime/electron-helper/shared-core.js
+@@ -1491,13 +1491,19 @@
+ 		manual
+ 	};
+ }
++function readFeedbackMetadata(value) {
++ if (!value || typeof value !== 'object') return undefined;
++ if (value.source !== 'care' || typeof value.eventId !== 'string' || !/^[A-Za-z0-9_.:-]{1,200}$/.test(value.eventId)) return undefined;
++ return { eventId: value.eventId, source: 'care' };
++}
+ function readSay(leaf$1) {
+ 	if (!leaf$1.data || typeof leaf$1.data !== "object") return null;
+ 	const d = leaf$1.data;
+ 	if (typeof d.text !== "string" || !d.text) return null;
+ 	return {
+ 		text: d.text,
+-		image: typeof d.image === "string" ? d.image : void 0
++		image: typeof d.image === "string" ? d.image : void 0,
++        feedback: readFeedbackMetadata(d.feedback)
+ 	};
+ }
+ function readWorkStatus(leaf$1) {
+@@ -1507,7 +1513,7 @@
+ 	if (!leaf$1.data || typeof leaf$1.data !== "object") return null;
+ 	const d = leaf$1.data;
+ 	if (typeof d.name !== "string" || !d.name) return null;
+-	return { name: d.name };
++	return { name: d.name, feedback: readFeedbackMetadata(d.feedback) };
+ }
+ async function postAction(baseUrl, body) {
+ 	try {
+--- a/runtime/electron-helper/sprite.js
++++ b/runtime/electron-helper/sprite.js
+@@ -10,6 +10,10 @@
+ // ---------- 单只宠物（行为与浏览器 PetCard 一致；纯逻辑来自 src/shared） ----------
+ class PetSprite {
+   constructor(pet) {
++    this.presentation = pet.presentation || null;
++    this.feedback = null;
++    this.feedbackOpen = false;
++    this.feedbackClickSeq = 0;
+     this.pet = pet; // 这只宠物的配置段（拍平后的成品实例，条目级字段已吹入：动画池/权重/周期）
+     // 页面级缩放（main 对窗口 setZoomFactor(CONFIG.scale)，见 DESIGN.md §3.5）统一放大整窗：
+     // pet.size 即 CSS 像素基准，**不再手工乘 CONFIG.scale**——固定 px UI（菜单/积分/聊天）
+@@ -157,8 +161,12 @@
+     this.tip.className = S.TOOLTIP_CLASS;
+     this.tip.setAttribute('aria-hidden', 'true');
+ 
+-    stage.appendChild(this.videoA);
+-    stage.appendChild(this.videoB);
++    this.actor = document.createElement('div');
++    this.actor.className = 'pet-feedback-actor';
++    this.actor.style.cssText = 'position:absolute;inset:0;pointer-events:none;transform-origin:50% 80%';
++    this.actor.appendChild(this.videoA);
++    this.actor.appendChild(this.videoB);
++    stage.appendChild(this.actor);
+     stage.appendChild(this.hit);
+     this.el.appendChild(this.bubble);
+     this.el.appendChild(this.tip);
+@@ -207,6 +215,25 @@
+       { signal: ac.signal },
+     );
+ 
++    if (this.presentation && window.PetFeedback) {
++      const p = this.presentation;
++      this.feedback = window.PetFeedback.createPetFeedback({
++        actor: this.actor, anchor: this.hit, theme: p.theme, pop: p.pop, cloud: p.cloud,
++        durationMs: p.closeSeconds * 1000,
++        getViewport: () => {
++          const r = this.visibleClampRect();
++          return r ? { x: r.x, y: r.y, width: r.w, height: r.h }
++            : { x: 0, y: 0, width: 1, height: 1 };
++        },
++        onRegionsChange: (_rects, open) => {
++          this.feedbackOpen = open;
++          this.syncInputBusy();
++          this.renderBubble();
++          if (!this.inputBusy()) this.setInteractive(false);
++        },
++      });
++    }
++
+     // 宠物间碰撞（跨窗 broker）：订阅其它宠物状态广播（碰撞检测用）+ 「被撞」事件 → onDeskHit。
+     // 注意：退订由窗口销毁自然回收（webContents 销毁后 ipc 事件不再派发），无需显式取消。
+     this.others = {}; // petId -> {x,y,vx,vy,size,bottomPad}（其它宠物的最新状态，来自主进程广播）
+@@ -241,6 +268,16 @@
+   }
+ 
+   dispose() {
++    if (this.presentation) {
++      this.presentationVideoDisposed = true;
++      ++this.gen;
++      if (this.presentationVideoCleanup) this.presentationVideoCleanup();
++      this.pending = null;
++      this.presentationFront = null;
++      for (const video of [this.videoA, this.videoB]) { video.onended = null; video.pause(); }
++    }
++    if (this.feedback) this.feedback.destroy();
++    this.feedback = null;
+     this.ac.abort();
+     this.inputRegionMutation.disconnect();
+     this.inputRegionResize.disconnect();
+@@ -290,6 +327,7 @@
+     // 而光标存的是视口坐标，窗口一移，光标相对窗口的位置就变了，不重摆提示会跟着窗口漂走。
+     // 只在显示时重摆：漫游逐帧调本函数，没显示提示时不做无谓的 DOM 写入。
+     if (this.tipOn) this.renderTip();
++    if (this.feedback) this.feedback.reposition();
+   }
+ 
+   // 角落/边距 → 窗口位置；拖拽后按会话内位置（比例）还原——**松手无任何边界夹取**，
+@@ -363,6 +401,7 @@
+ 
+   // 双缓冲切换（与浏览器同一套：前台 opacity 切换 + 降级视频清 handler 并停播，防残留 ended 雪崩）
+   switchTo(next, nextOnce) {
++    if (this.presentation) return this.switchPresentationVideo(next, nextOnce);
+     if (!next) return;
+     const pending = this.pending;
+     if (pending && pending.anim === next && pending.once === nextOnce) {
+@@ -426,10 +465,110 @@
+     if (el.readyState >= 2) onReady();
+   }
+ 
++  // Opt-in presentation keeps the old frame until a new compositor frame exists.
++  // Legacy pets retain the original player path and its transition semantics.
++  switchPresentationVideo(next, nextOnce) {
++    if (!next || this.presentationVideoDisposed) return;
++    if (this.pending?.anim === next && this.pending.once === nextOnce) return;
++    if (this.presentationVideoCleanup) this.presentationVideoCleanup();
++    const gen = ++this.gen;
++    const targetIndex = this.front === 0 ? 1 : 0;
++    const el = targetIndex === 0 ? this.videoA : this.videoB;
++    if (!el) return;
++    for (const video of [this.videoA, this.videoB]) video.style.transition = 'none';
++    this.pending = { anim: next, once: nextOnce, gen };
++    let frame = null, raf = null, timer = null, cleaned = false, ready = false, committed = false, expectedSource = '';
++    const current = () => !cleaned && !this.presentationVideoDisposed && this.gen === gen && this.pending?.gen === gen;
++    const cleanup = () => {
++      if (cleaned) return;
++      cleaned = true;
++      el.removeEventListener('loadeddata', onReady);
++      el.removeEventListener('error', onError);
++      if (timer !== null) window.clearTimeout(timer);
++      if (frame !== null) el.cancelVideoFrameCallback?.(frame);
++      if (raf !== null) window.cancelAnimationFrame(raf);
++      if (!committed) el.pause();
++      if (this.presentationVideoCleanup === cleanup) this.presentationVideoCleanup = null;
++    };
++    const fail = (reason) => {
++      if (!current()) return;
++      cleanup();
++      this.pending = null;
++      console.warn('[dsh-pet] 素材加载失败 pet=' + this.pet.id + ' anim=' + next + '：' + reason + '（保留当前画面）');
++      const retained = this.presentationFront;
++      if (retained) {
++        this.anim = retained.anim;
++        this.once = retained.once;
++        if (retained.once && !retained.handled && (retained.ended || retained.element.ended)) {
++          retained.finish();
++        }
++      }
++    };
++    const commit = () => {
++      frame = null; raf = null;
++      if (!current() || el.currentSrc !== expectedSource) return;
++      committed = true;
++      const old = this.front === 0 ? this.videoA : this.videoB;
++      el.classList.add('is-front');
++      if (old && old !== el) { old.classList.remove('is-front'); old.onended = null; old.pause(); }
++      this.front = targetIndex;
++      this.pending = null;
++      const frontState = { element: el, index: targetIndex, anim: next, once: nextOnce, ended: false, handled: false };
++      this.presentationFront = frontState;
++      this.anim = next;
++      this.once = nextOnce;
++      frontState.finish = () => {
++        if (this.presentationVideoDisposed || this.presentationFront !== frontState || this.front !== targetIndex || frontState.handled) return;
++        frontState.ended = true;
++        if (this.pending) return;
++        frontState.handled = true;
++        this.anim = frontState.anim;
++        this.once = frontState.once;
++        this.handleEnded();
++      };
++      el.onended = nextOnce ? frontState.finish : null;
++      cleanup();
++      this.pendingSquash = false;
++      if (this.pendingMove) this.startMoveDrive(el);
++    };
++    const onError = () => fail('video error');
++    const onReady = () => {
++      if (!current() || ready || el.readyState < 2 || el.currentSrc !== expectedSource) return;
++      ready = true;
++      el.removeEventListener('loadeddata', onReady);
++      if (typeof el.requestVideoFrameCallback === 'function') frame = el.requestVideoFrameCallback(commit);
++      else raf = window.requestAnimationFrame(() => {
++        raf = null;
++        if (current()) raf = window.requestAnimationFrame(commit);
++      });
++      const playback = el.play();
++      playback?.catch(() => fail('video play rejected'));
++    };
++    this.presentationVideoCleanup = cleanup;
++    el.onended = null;
++    el.loop = !nextOnce;
++    el.muted = true;
++    el.autoplay = false;
++    el.playsInline = true;
++    el.style.transform = this.facing === 'right' ? 'scaleX(-1)' : '';
++    el.addEventListener('loadeddata', onReady);
++    el.addEventListener('error', onError);
++    timer = window.setTimeout(() => fail('10s 超时'), 10000);
++    el.src = this.assetBase + encodeURIComponent(next) + (S.ANIMATION_EXT || '.webm');
++    expectedSource = el.src;
++    el.load();
++  }
++
++  isPresentationIdleLoop(name) {
++    return Boolean(this.presentation && this.pet.fixedEnabled && this.animations.idle.length === 1 &&
++      this.animations.idle[0] === name && this.weights.idle >= 100 &&
++      (!this.pet.workStatusEnabled || !this.workState));
++  }
++
+   playOnce(name) {
+     this.anim = name;
+-    this.once = true;
+-    this.switchTo(name, true);
++    this.once = !this.isPresentationIdleLoop(name);
++    this.switchTo(name, this.once);
+   }
+ 
+   // 动画链（与浏览器 pickNext 语义一致，纯逻辑在 shared）
+@@ -752,6 +891,7 @@
+    *  与浏览器同构，曲线在 shared（S.squashScale）。depth = 下压幅度（点击固定 0.55；
+    *  落地按冲击速度 S.landingSquash 动态取）。reduce-motion 时跳过。 */
+   startSquash(el, depth = S.SQ_SQUASH) {
++    if (this.presentation) return; // Dedicated feedback wrapper owns presentation scale.
+     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+     const token = ++this.squashToken;
+     if (this.squashRef !== null) cancelAnimationFrame(this.squashRef);
+@@ -873,6 +1013,7 @@
+     if (!d.dragging) {
+       if (Math.hypot(dx, dy) < S.DRAG_THRESHOLD) return;
+       d.dragging = true;
++      if (this.feedback) this.feedback.dragStart();
+       // 真正开始拖拽才把舞台拍平（人物随光标拿起；与浏览器 dragging 语义一致）
+       this.stage.style.transform = 'none';
+       if (this.animations.drag.length) {
+@@ -893,6 +1034,7 @@
+   onPointerUp(e) {
+     const d = this.dragState;
+     const wasDragging = d.dragging;
++    if (wasDragging && this.feedback) this.feedback.dragEnd();
+     d.active = false;
+     d.dragging = false;
+     this.hit.classList.remove('dragging');
+@@ -980,7 +1122,7 @@
+    * 位移分不清"拖拽跟手"和"漫游/抛掷"）。同时上报控件矩形：菜单/聊天框外的透明区域继续穿透。
+    */
+   inputBusy() {
+-    return this.dragState.active || this.menuOpen || this.chatOpen;
++    return this.dragState.active || this.menuOpen || this.chatOpen || this.feedbackOpen;
+   }
+ 
+   /**
+@@ -1014,6 +1156,11 @@
+       }
+       const r = el.getBoundingClientRect();
+       if (r.width > 0 && r.height > 0) {
++        rects.push({ x: toScreen(r.x), y: toScreen(r.y), width: toScreen(r.width), height: toScreen(r.height) });
++      }
++    }
++    if (this.feedback) {
++      for (const r of this.feedback.getInteractiveRects()) {
+         rects.push({ x: toScreen(r.x), y: toScreen(r.y), width: toScreen(r.width), height: toScreen(r.height) });
+       }
+     }
+@@ -1112,10 +1259,12 @@
+     const px = wx - this.margin.l;
+     const py = wy - this.margin.t;
+     const inBody = px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
++    const inFeedback = this.feedback && this.feedback.getInteractiveRects().some((rect) =>
++      wx >= rect.x && wx < rect.x + rect.width && wy >= rect.y && wy < rect.y + rect.height);
+     // 光标位置存**视口坐标**（窗口原点 + 窗口内坐标）：窗口随宠物移动时贴光标不会漂，见 renderTip。
+     // 必须在 setTip 之前更新：setTip 变显隐时会立刻渲染一次，晚一步就会用上一次的光标摆位。
+     if (inBody) this.tipCursor = { x: this.pos.x - this.margin.l + wx, y: this.pos.y - this.margin.t + wy };
+-    this.setInteractive(inBody);
++    this.setInteractive(inBody || !!inFeedback);
+     // 悬浮提示与可交互判定同源（同一个 inBody）：光标进身体 → 提示出现，离开 → 收起
+     this.setTip(inBody);
+     // 跟随光标：位置依赖光标，所以每次移动都得重摆一次（setTip 只在显隐变化时才渲染）
+@@ -1125,6 +1274,7 @@
+   onClick() {
+     const d = this.dragState;
+     if (d.active || d.dragging || this.justDragged) return;
++    this.showPresentation('我在呢～', 'click:' + this.pet.id + ':' + (++this.feedbackClickSeq), 'click');
+     // 积分判定已在 onPointerDown（按下即触发）完成：
+     // 本次按下已触发过积分 → 只收手停住、**不**再播普通点击动画（粒子+弹窗即反馈，与浏览器同构）
+     if (this.pressScoreFired) {
+@@ -1212,7 +1362,7 @@
+     this.syncInputRegions(); // mountContextMenu 完成布局后才能读取菜单矩形
+   }
+ 
+-  onMenuAction(leaf) {
++  onMenuAction(leaf, feedbackCue) {
+     this.closeMenu();
+     if (!leaf || typeof leaf !== 'object') return;
+     if (leaf.action === 'open-site') {
+@@ -1240,6 +1390,9 @@
+       return;
+     }
+     if (!leaf.anim) return;
++    if (leaf.anim === 'care' && feedbackCue && (feedbackCue.feedback || !feedbackCue.suppressFeedbackForSay)) {
++      this.showPresentation('我在呢～', feedbackCue.feedback?.eventId || ('anim:' + this.pet.id + ':' + feedbackCue.counter), 'care', true);
++    }
+     // 文字类（noMirror）朝右站姿是镜像的：点播前强制朝左，避免文字镜像（与浏览器随机链"朝右不选文字"同语义）
+     if (S.isNoMirrorAnimation(this.animations.categories, leaf.anim) && this.facing === 'right') {
+       this.facing = 'left';
+@@ -1353,6 +1506,12 @@
+     });
+   }
+ 
++  showPresentation(text, eventId, trigger, fallback = false) {
++    if (!this.feedback) return false;
++    if (this.workOn && this.workText && (this.workState === 'success' || this.workState === 'error')) return false;
++    return this.feedback.show({ text, eventId, trigger, fallback });
++  }
++
+   renderBubble() {
+     // 气泡单槽：同一时刻只显示一个（优先级：终态任务 > 碎碎念/对话 > 余额 > 非终态任务）。
+     // 为什么终态任务不让位：完成/失败气泡只活 10s，被事件顶掉就彻底看不到了；非终态任务气泡
+@@ -1366,7 +1525,7 @@
+     const balanceOn = !!(this.bubbleOn && this.balanceView);
+     const workTerminal = this.workState === 'success' || this.workState === 'error';
+     const slot =
+-      workTerminal && workOn ? 'work' : whisperOn ? 'whisper' : balanceOn ? 'balance' : workOn ? 'work' : 'none';
++      workTerminal && workOn ? 'work' : this.feedbackOpen ? 'none' : whisperOn ? 'whisper' : balanceOn ? 'balance' : workOn ? 'work' : 'none';
+     const whisperImg = slot === 'whisper' ? S.createMemeImage(this.whisperImage, BASE, this.assetRoot) : null;
+     this.bubble.classList.toggle(
+       'is-whisper',
+--- a/scripts/build-feedback-helper.mjs
++++ b/scripts/build-feedback-helper.mjs
+@@ -0,0 +1,18 @@
++// Zero-dependency build of our three fixed ESM sources into a classic helper script.
++// File-origin helpers intentionally do not depend on ESM/CORS or executable config.
++import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
++import { fileURLToPath } from 'node:url';
++const root = new URL('../', import.meta.url);
++const dir = new URL('src/shared/feedback/', root);
++const files = ['feedback-styles.mjs', 'feedback-core.mjs', 'feedback-dom.mjs'];
++const body = files.map((name) => {
++  const source = readFileSync(new URL(name, dir), 'utf8');
++  const output = source.replace(/^import .*;\s*$/gm, '').replace(/^export (?=(?:function|const)\b)/gm, '');
++  if (/^\s*(?:import|export)\s/m.test(output)) throw new Error('Unexpected module syntax: ' + name);
++  return '// ' + name + '\n' + output;
++}).join('\n');
++const target = new URL('runtime/electron-helper/feedback-helper.js', root);
++mkdirSync(fileURLToPath(new URL('./', target)), { recursive: true });
++writeFileSync(target, '// Generated by scripts/build-feedback-helper.mjs; edit src/shared/feedback instead.\n' +
++  '(function(){\n\'use strict\';\n' + body + '\nglobalThis.PetFeedback = Object.freeze({ createPetFeedback });\n})();\n');
++console.log(fileURLToPath(target));
+--- a/src/client/pet.ts
++++ b/src/client/pet.ts
+@@ -46,6 +46,8 @@
+ import { mountChatDialog } from '../shared/chat';
+ import { petBridge } from './settings';
+ import { notifyFromFrame } from './notify';
++// 可选表现层：共享状态机/布局/动效；只有带 presentation 的宠物启用。
++import { createPetFeedback } from '../shared/feedback/feedback-dom.mjs';
+ 
+ /** 容器注册的「立刻拉一拍 /state」钩子：前端动作（右键菜单 / 对话弹窗）完成后调用——
+  *  数据只从 S 来（动作端点不回数据），但叫醒一拍就能 0 延迟看到结果，不用等下一个 1s。
+@@ -97,6 +99,7 @@
+   '.dsh-pet-root[data-corner="top-right"]{right:var(--dsh-pet-mx,24px);top:var(--dsh-pet-my,0)}',
+   '.dsh-pet-root[data-corner="top-left"]{left:var(--dsh-pet-mx,24px);top:var(--dsh-pet-my,0)}',
+   '.dsh-pet-stage{position:relative;width:var(--dsh-pet-size,462px);height:calc(var(--dsh-pet-size,462px)*9/16);pointer-events:none}',
++  '.dsh-pet-feedback-actor{position:absolute;inset:0;pointer-events:none;transform-origin:center}',
+   '.dsh-pet-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:0;transition:opacity .18s ease;transform-origin:center}',
+   '.dsh-pet-video.is-front{opacity:1}',
+   // 触屏拖拽必需：缺 touch-action:none 时浏览器把手势判成页面滚动并发 pointercancel，
+@@ -161,11 +164,11 @@
+     workStatus: WorkStatusSnapshot | null;
+     workStatusTick: number;
+     /** 本宠物的「说一句话」（碎碎念/命令气泡/对话回复三合一；容器从 S 分发下来） */
+-    say?: { text: string; image?: string; seq: number };
++    say?: { text: string; image?: string; feedback?: { eventId: string; source: 'care' }; seq: number; counter: number };
+     sayTick: number;
+     /** 本宠物的「点播动画」指令（其他插件经 POST /anim 写进 S；容器从 S 分发下来）。
+      *  注意与组件内既有的 `anim`（**当前正在播的**动画名）区分：这个只是"要播什么"的指令。 */
+-    animCue?: { name: string; seq: number };
++    animCue?: { name: string; feedback?: { eventId: string; source: 'care' }; seq: number; counter: number; suppressFeedbackForSay: boolean };
+     animCueTick: number;
+     arena: ReactNS.MutableRefObject<{ slots: Record<string, PetCollisionSlot> }>;
+   }) {
+@@ -179,12 +182,19 @@
+     // 即内置默认池）——成品绝对正确，直接读，不做任何回落
+     const petAnims = cfg.animations;
+     const petWeights = cfg.animationWeights;
++    // cfg 是本宠物拍平后的成品；presentation 归属本实例，缺失就保持原表现。
++    const presentation = cfg.presentation;
++    const feedbackEnabled = presentation !== undefined;
++    const presentationPlaybackKey = feedbackEnabled
++      ? JSON.stringify([cfg.fixedEnabled, petWeights.idle, cfg.workStatusEnabled, petAnims.idle])
++      : '';
+ 
+     // ---- React 状态 ----
+     const [anim, setAnim] = useState(petAnims.idle[0] ?? '');
+     const [once, setOnce] = useState(true);
+     const [facing, setFacing] = useState('left' as 'left' | 'right');
+     const [dragging, setDragging] = useState(false);
++    const [feedbackOn, setFeedbackOn] = useState(false);
+     // 悬浮提示显隐（鼠标进/出命中区翻转；指针捕获期间由拖拽逻辑主动收起，见 handlePointerDown）
+     const [tipOn, setTipOn] = useState(false);
+     const tipRef = useRef<HTMLDivElement | null>(null);
+@@ -221,6 +231,15 @@
+     // ---- DOM / 状态 refs ----
+     const rootRef = useRef<HTMLDivElement | null>(null);
+     const stageRef = useRef<HTMLDivElement | null>(null);
++    // actor 只拥有视觉缩放；hit/anchor 始终在它外面，几何不随反馈动画改变。
++    const feedbackActorRef = useRef<HTMLDivElement | null>(null);
++    const hitRef = useRef<HTMLDivElement | null>(null);
++    const feedbackRef = useRef<ReturnType<typeof createPetFeedback> | null>(null);
++    const feedbackVisibleRef = useRef(false);
++    // 抛掷/加载的旧回调也读取当前开关，配置切换后不能再恢复旧 scaleY。
++    const feedbackEnabledRef = useRef(feedbackEnabled);
++    feedbackEnabledRef.current = feedbackEnabled;
++    const clickEventCounterRef = useRef(0);
+     const videoARef = useRef<HTMLVideoElement | null>(null);
+     const videoBRef = useRef<HTMLVideoElement | null>(null);
+     const frontRef = useRef(0);
+@@ -265,9 +284,149 @@
+     // 卸载时统一 abort——否则卸载后完成的 fetch 会再创建 blob URL 且无人 revoke（泄漏到页面销毁）。
+     const mountedRef = useRef(false);
+     const inflightRef = useRef<AbortController[]>([]);
++    // Opt-in video transitions own their pending decode/frame callbacks.
++    const readyCleanupRef = useRef<(() => void) | null>(null);
++    const activeVideoRef = useRef<{
++      anim: string; loop: boolean; element: HTMLVideoElement; index: number;
++      ended: boolean; handled: boolean; finish: (event?: Event) => void;
++    } | null>(null);
+ 
+     const switchTo = (next: string, nextOnce: boolean) => {
+       if (!next) return;
++      if (feedbackEnabledRef.current) {
++        const idleLoop = cfg.fixedEnabled && petAnims.idle.length === 1 &&
++          next === petAnims.idle[0] && petWeights.idle >= 100 &&
++          (!cfg.workStatusEnabled || !workStatusRef.current?.state);
++        if (idleLoop) nextOnce = false;
++        const front = frontRef.current === 0 ? videoARef.current : videoBRef.current;
++        if (idleLoop && !pendingRef.current && activeVideoRef.current?.anim === next &&
++          activeVideoRef.current.loop && front && front.readyState >= 2) {
++          front.loop = true;
++          front.onended = null;
++          if (front.paused) front.play().catch(() => {});
++          return;
++        }
++        const pending = pendingRef.current;
++        if (pending?.anim === next && pending.once === nextOnce) return;
++        readyCleanupRef.current?.();
++        const gen = ++genRef.current;
++        const targetIsB = frontRef.current === 0;
++        const el = targetIsB ? videoBRef.current : videoARef.current;
++        if (!el) { pendingRef.current = null; return; }
++        pendingRef.current = { anim: next, once: nextOnce, gen };
++        const ac = new AbortController();
++        inflightRef.current.push(ac);
++        let canceled = false;
++        let committed = false;
++        let sourceUrl: string | null = null;
++        let videoFrame: number | null = null;
++        let fallbackFrame: number | null = null;
++        let readyTimer: number | null = null;
++        const fetchTimer = window.setTimeout(() => ac.abort(), 10000);
++        const current = () => !canceled && mountedRef.current && pendingRef.current?.gen === gen;
++        const cleanup = () => {
++          if (canceled) return;
++          canceled = true;
++          ac.abort();
++          window.clearTimeout(fetchTimer);
++          if (readyTimer !== null) window.clearTimeout(readyTimer);
++          if (videoFrame !== null) el.cancelVideoFrameCallback?.(videoFrame);
++          if (fallbackFrame !== null) cancelAnimationFrame(fallbackFrame);
++          if (!committed) el.pause();
++          el.removeEventListener('loadeddata', onReady);
++          el.removeEventListener('error', onError);
++          const ix = inflightRef.current.indexOf(ac);
++          if (ix !== -1) inflightRef.current.splice(ix, 1);
++          if (readyCleanupRef.current === cleanup) readyCleanupRef.current = null;
++        };
++        const fail = (error: unknown) => {
++          if (!current()) return;
++          pendingRef.current = null;
++          cleanup();
++          // A failed request keeps the committed front and its once-only ended chain.
++          const active = activeVideoRef.current;
++          if (active && !active.loop && (active.ended || active.element.ended)) active.finish();
++          console.warn('[dsh-pet] opt-in video failed pet=' + cfg.id + ' anim=' + next + ': ' + String(error));
++        };
++        const commit = () => {
++          if (!current() || !sourceUrl || el.currentSrc !== sourceUrl || el.readyState < 2) return;
++          committed = true;
++          const old = frontRef.current === 0 ? videoARef.current : videoBRef.current;
++          // Both mutations happen in one task after a decoded frame reaches the compositor.
++          el.style.transition = 'none';
++          el.style.opacity = '1';
++          el.classList.add('is-front');
++          if (old && old !== el) {
++            old.style.transition = 'none';
++            old.style.opacity = '0';
++            old.classList.remove('is-front');
++            old.onended = null;
++            old.pause();
++          }
++          frontRef.current = targetIsB ? 1 : 0;
++          const active = {
++            anim: next, loop: !nextOnce, element: el, index: targetIsB ? 1 : 0,
++            ended: false, handled: false, finish: (_event?: Event) => {},
++          };
++          active.finish = (event?: Event) => {
++            if (!mountedRef.current || activeVideoRef.current !== active || frontRef.current !== active.index || active.handled) return;
++            active.ended = true;
++            if (pendingRef.current) return; // Defer progression while a newer command owns loading.
++            active.handled = true;
++            // React state may still name a failed requested clip; classify the committed clip.
++            animRef.current = active.anim;
++            handleEnded(event);
++          };
++          activeVideoRef.current = active;
++          pendingRef.current = null;
++          el.onended = nextOnce ? active.finish : null;
++          el.style.transform = facingRef.current === 'right' ? 'scaleX(-1)' : '';
++          cleanup();
++          if (pendingMoveRef.current) startMoveDrive(el);
++        };
++        const onReady = () => {
++          if (!current() || !sourceUrl || el.currentSrc !== sourceUrl || el.readyState < 2) return;
++          el.removeEventListener('loadeddata', onReady);
++          if (typeof el.requestVideoFrameCallback === 'function') videoFrame = el.requestVideoFrameCallback(commit);
++          else fallbackFrame = requestAnimationFrame(() => { fallbackFrame = requestAnimationFrame(commit); });
++          el.play().catch(fail);
++        };
++        const onError = () => { if (el.error) fail(el.error); };
++        readyCleanupRef.current = cleanup;
++        el.loop = !nextOnce;
++        el.muted = true;
++        el.autoplay = false;
++        el.playsInline = true;
++        el.onended = null;
++        const assetUrl = '/dsh-pet-7340/thumb/' + encodeURIComponent(cfg.assetRoot ?? cfg.id) + '/' + encodeURIComponent(next) + THUMB_EXT;
++        fetch(assetUrl, { cache: 'default', signal: ac.signal })
++          .then((r) => { if (!r.ok) throw new Error('asset HTTP ' + r.status); return r.blob(); })
++          .then((blob) => {
++            window.clearTimeout(fetchTimer);
++            if (!current()) return;
++            const slot = targetIsB ? 'b' : 'a';
++            const oldUrl = blobUrlRef.current[slot];
++            if (oldUrl) URL.revokeObjectURL(oldUrl);
++            sourceUrl = URL.createObjectURL(blob);
++            blobUrlRef.current[slot] = sourceUrl;
++            el.src = sourceUrl;
++            // Register only after this generation owns the source. Old loadeddata cannot win.
++            el.addEventListener('loadeddata', onReady);
++            el.addEventListener('error', onError);
++            readyTimer = window.setTimeout(() => fail(new Error('video frame timeout')), 10000);
++            el.load();
++          })
++          .catch(fail);
++        return;
++      }
++      // Return ownership to the unchanged legacy playback and squash path.
++      readyCleanupRef.current?.();
++      activeVideoRef.current = null;
++      for (const video of [videoARef.current, videoBRef.current]) {
++        if (!video) continue;
++        video.style.transition = '';
++        video.style.opacity = '';
++      }
+       const pending = pendingRef.current;
+       if (pending && pending.anim === next && pending.once === nextOnce) {
+         // 防重命中（单动画点击时目标=当前动画，不重播）：仍消费 Q 弹标记，压当前前台视频，
+@@ -380,17 +539,97 @@
+       el.addEventListener('loadeddata', onReady);
+     };
+ 
++    // 可选表现层的生命周期与配置绑定；DOM 适配器负责 viewport/scroll、DPR、字体及尺寸重测。
++    // 不把整个舞台交给缩放，避免命中框/朝向/位置互相叠加变换。
++    useEffect(() => {
++      feedbackVisibleRef.current = false;
++      setFeedbackOn(false);
++      if (!presentation || !feedbackActorRef.current || !hitRef.current) {
++        if (activeVideoRef.current || readyCleanupRef.current) {
++          readyCleanupRef.current?.();
++          pendingRef.current = null;
++          ++genRef.current;
++          activeVideoRef.current = null;
++          for (const video of [videoARef.current, videoBRef.current]) {
++            if (!video) continue;
++            video.style.transition = '';
++            video.style.opacity = '';
++          }
++          const front = frontRef.current === 0 ? videoARef.current : videoBRef.current;
++          if (front) { front.loop = !once; front.onended = once ? handleEnded : null; }
++        }
++        return;
++      }
++      stopSquash();
++      pendingSquashRef.current = false;
++      for (const video of [videoARef.current, videoBRef.current]) {
++        if (!video) continue;
++        video.style.transformOrigin = '';
++        video.style.transform = facingRef.current === 'right' ? 'scaleX(-1)' : '';
++      }
++      let active = true;
++      const feedback = createPetFeedback({
++        actor: feedbackActorRef.current,
++        anchor: hitRef.current,
++        theme: presentation.theme ?? 'silver',
++        durationMs: (presentation.closeSeconds ?? 8) * 1000,
++        pop: presentation.pop ?? true,
++        cloud: presentation.cloud ?? true,
++        onRegionsChange: (_rects: unknown, visible: boolean) => {
++          if (!active || feedbackVisibleRef.current === visible) return;
++          feedbackVisibleRef.current = visible;
++          setFeedbackOn(visible);
++        },
++      });
++      feedbackRef.current = feedback;
++      if (dragRef.current.dragging) feedback.dragStart();
++      return () => {
++        active = false;
++        feedback.destroy();
++        if (feedbackRef.current === feedback) feedbackRef.current = null;
++      };
++      // eslint-disable-next-line react-hooks/exhaustive-deps
++    }, [cfg.id, feedbackEnabled]);
++    useEffect(() => {
++      if (!presentation) return;
++      // 更新表现参数不重建 controller，保留已消费的 UUID，避免配置重载后重复反馈。
++      feedbackRef.current?.setPresentation({
++        theme: presentation.theme ?? 'silver',
++        pop: presentation.pop ?? true,
++        cloud: presentation.cloud ?? true,
++        closeSeconds: presentation.closeSeconds ?? 8,
++      });
++    }, [feedbackEnabled, presentation?.theme, presentation?.pop, presentation?.cloud, presentation?.closeSeconds]);
++
++    // 完成/失败文本仍高于说话槽；出现终态时收起 cloud，避免两个气泡叠放。
++    const terminalWorkBubble = Boolean(
++      cfg.workStatusEnabled && workBubbleOn && workText &&
++      (workStatus?.state === 'success' || workStatus?.state === 'error'),
++    );
++    useEffect(() => {
++      if (terminalWorkBubble) feedbackRef.current?.close();
++    }, [terminalWorkBubble]);
++
+     // ---- 状态驱动播放 ----
+     useEffect(() => {
+       switchTo(anim, once);
+       // eslint-disable-next-line react-hooks/exhaustive-deps
+-    }, [anim, once, seq]);
++    }, [anim, once, seq, presentationPlaybackKey]);
+     useEffect(() => {
+       mountedRef.current = true;
+       const bu = blobUrlRef.current;
+       const inflight = inflightRef.current;
+       return () => {
+         mountedRef.current = false;
++        readyCleanupRef.current?.();
++        if (feedbackEnabledRef.current || activeVideoRef.current) {
++          pendingRef.current = null;
++          ++genRef.current;
++          activeVideoRef.current = null;
++          for (const video of [videoARef.current, videoBRef.current]) {
++            if (video) { video.pause(); video.onended = null; }
++          }
++        }
+         for (const c of inflight) c.abort();
+         inflight.length = 0;
+         stopMove();
+@@ -513,11 +752,15 @@
+         // 不交互就回不去（issue #61 报告的症状）。这里只把当前段改成播完即停：它结束后自然走
+         // handleEnded → resumeWorkStatusAnim() 返回 false → 回 idle；工作期间的原生 loop 不受影响。
+         // 与桌面端 runtime/electron-helper/events.js 的空闲分支同一处修复，两端语义保持一致。
+-        if (poolIncludes(petAnims.events?.workStatus ?? [], animRef.current)) {
++        const active = feedbackEnabledRef.current ? activeVideoRef.current : null;
++        if (poolIncludes(petAnims.events?.workStatus ?? [], active?.anim ?? animRef.current)) {
+           const front = frontRef.current === 0 ? videoARef.current : videoBRef.current;
+           if (front) {
+             front.loop = false;
+-            front.onended = handleEnded;
++            if (active && active.element === front) {
++              active.loop = false;
++              front.onended = active.finish;
++            } else front.onended = handleEnded;
+           }
+         }
+         // 空闲：收起常驻气泡
+@@ -591,7 +834,7 @@
+     useEffect(() => {
+       if (!say || say.seq === prevSaySeqRef.current) return;
+       prevSaySeqRef.current = say.seq;
+-      triggerWhisper(say.text, say.image);
++      triggerWhisper(say.text, say.image, say.feedback?.eventId ?? 'say:' + cfg.id + ':' + say.counter);
+       // eslint-disable-next-line react-hooks/exhaustive-deps
+     }, [sayTick]);
+ 
+@@ -602,13 +845,27 @@
+     useEffect(() => {
+       if (!animCue || animCue.seq === prevAnimSeqRef.current) return;
+       prevAnimSeqRef.current = animCue.seq;
++      // care 的 broadcast 与 anim 共享 feedback.eventId，跨快照到达也只反馈一次。
++      // 旧调用没有 metadata 时，才用同快照 say suppression；不猜测跨快照业务关联。
++      if (animCue.name === 'care' && !animCue.suppressFeedbackForSay && !terminalWorkBubble) {
++        feedbackRef.current?.show({
++          eventId: animCue.feedback?.eventId ?? 'anim:' + cfg.id + ':' + animCue.counter,
++          text: '我在呢～',
++          trigger: 'care',
++          fallback: true, // anim 先到时允许同 UUID 的 say 升级文本，不重播/续期/重开
++        });
++      }
+       handleMenuAction({ label: animCue.name, anim: animCue.name });
+       // eslint-disable-next-line react-hooks/exhaustive-deps
+     }, [animCueTick]);
+ 
+     // 碎碎念触发（本宠物）：随机抽 events.whisper 动画 + 弹文本气泡（10s 消失，与动画解耦）
+     // image：host 侧随机抽定的配图名称（未开配图/池为空则 undefined）——与文本同一次触发一起来
+-    const triggerWhisper = (text: string, image?: string) => {
++    const triggerWhisper = (text: string, image: string | undefined, eventId: string) => {
++      // 文本反馈不依赖 events.whisper 动画池；缺失动画也不能吞掉有效 say。
++      if (feedbackEnabled && !terminalWorkBubble) {
++        feedbackRef.current?.show({ eventId, text, trigger: 'care' });
++      }
+       const pool = petAnims.events?.whisper;
+       if (!pool || pool.length === 0) {
+         console.error('[dsh-pet] 配置缺少 animations.events.whisper，无法播放碎碎念动画');
+@@ -630,10 +887,12 @@
+       stopMove();
+       setWhisperText(text);
+       setWhisperImage(image);
+-      setWhisperBubbleOn(true);
++      setWhisperBubbleOn(!feedbackEnabled);
+       // 气泡 10s 定时消失（与动画解耦；重复触发先清旧定时器）
+       if (whisperBubbleTimerRef.current !== null) window.clearTimeout(whisperBubbleTimerRef.current);
+-      whisperBubbleTimerRef.current = window.setTimeout(() => setWhisperBubbleOn(false), BUBBLE_DURATION_MS);
++      whisperBubbleTimerRef.current = feedbackEnabled
++        ? null
++        : window.setTimeout(() => setWhisperBubbleOn(false), BUBBLE_DURATION_MS);
+       setOnce(true);
+       setAnim(name);
+     };
+@@ -1094,7 +1353,7 @@
+      *  与桌面同构，曲线在 shared（squashScale）。depth = 下压幅度（点击固定 0.55；
+      *  落地按冲击速度 landingSquash 动态取）。reduce-motion 时跳过。 */
+     const startSquash = (el: HTMLVideoElement, depth: number = SQ_SQUASH) => {
+-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
++      if (feedbackEnabledRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+       const token = ++squashTokenRef.current;
+       if (squashRef.current !== null) cancelAnimationFrame(squashRef.current);
+       const origin = el.style.transformOrigin;
+@@ -1253,6 +1512,7 @@
+       if (!d.dragging) {
+         if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+         d.dragging = true;
++        feedbackRef.current?.dragStart(); // 只有越过阈值的真实拖拽才清反馈
+         setDragging(true);
+         setOnce(true);
+         if (petAnims.drag.length) {
+@@ -1284,6 +1544,7 @@
+       e.currentTarget.classList.remove('dragging');
+       stopDragFollow();
+       if (wasDragging) {
++        feedbackRef.current?.dragEnd();
+         justDraggedRef.current = true;
+         setTimeout(() => {
+           justDraggedRef.current = false;
+@@ -1338,9 +1599,17 @@
+         setTipOn(true);
+       }
+     };
+-    const handleClick = () => {
++    const handleClick = (e: ReactNS.MouseEvent<HTMLDivElement>) => {
+       const d = dragRef.current;
+       if (d.active || d.dragging || justDraggedRef.current) return;
++      if (!terminalWorkBubble) {
++        feedbackRef.current?.show({
++          eventId: 'click:' + cfg.id + ':' + ++clickEventCounterRef.current,
++          text: '我在呢～',
++          trigger: 'click',
++          via: e.detail === 0 ? 'keyboard' : 'pointer',
++        });
++      }
+       // 积分判定已在 pointerdown（按下即触发）完成：
+       // 本次按下已触发过积分 → 只收手停住、**不**再播普通点击动画（粒子+弹窗即反馈）
+       if (pressScoreFiredRef.current) {
+@@ -1355,7 +1624,7 @@
+       if (!petAnims.clicks.length) return;
+       const name = pick(petAnims.clicks);
+       console.log('[dsh-pet] ' + new Date().toTimeString().slice(0, 8) + ' pet=' + cfg.id + ' -> [CLICK] ' + name);
+-      pendingSquashRef.current = true; // 等新点击动画切到前台后 Q 弹（压新首帧）
++      pendingSquashRef.current = !feedbackEnabled; // 新表现层拥有 uniform 动效，禁用旧 scaleY 叠加
+       // 单动画点击（目标=当前播放）时 React 状态不变不会触发 useEffect 重放：
+       // 递增 seq 强制 switchTo 走一遍（防重分支负责在动画相同时消费 Q 弹标记）
+       setSeq((s) => s + 1);
+@@ -1488,7 +1757,8 @@
+       if (workTerminal && workBubbleOn && workText && cfg.workStatusEnabled) {
+         return h(WhisperBubble, { text: workText, on: workBubbleOn });
+       }
+-      if (whisperBubbleOn && whisperText) {
++      if (feedbackEnabled && presentation?.cloud !== false && feedbackOn) return null; // cloud 占据原说话槽，低优先级气泡让位
++      if (!feedbackEnabled && whisperBubbleOn && whisperText) {
+         // assetRoot：配图去哪个表情包目录链取（种类独占 → 用户目录 → 包内），与动画素材同一套归属
+         return h(WhisperBubble, {
+           text: whisperText,
+@@ -1507,6 +1777,7 @@
+     })();
+     const commonVideoProps = { muted: true, playsInline: true, autoPlay: true };
+     const hitProps = {
++      ref: hitRef,
+       className: 'dsh-pet-hit',
+       style: {
+         left: (HIT_BOX.x0 / 640) * 100 + '%',
+@@ -1548,8 +1819,14 @@
+           className: 'dsh-pet-stage',
+           style: stageStyle,
+           children: [
+-            h('video', Object.assign({}, commonVideoProps, { ref: videoARef, className: 'dsh-pet-video is-front' })),
+-            h('video', Object.assign({}, commonVideoProps, { ref: videoBRef, className: 'dsh-pet-video' })),
++            h('div', {
++              ref: feedbackActorRef,
++              className: 'dsh-pet-feedback-actor',
++              children: [
++                h('video', Object.assign({}, commonVideoProps, { ref: videoARef, className: 'dsh-pet-video is-front' })),
++                h('video', Object.assign({}, commonVideoProps, { ref: videoBRef, className: 'dsh-pet-video' })),
++              ],
++            }),
+             h('div', hitProps),
+           ],
+         }),
+@@ -1668,9 +1945,9 @@
+     // 为什么不再按"有没有启用某功能"决定要不要轮询：说话（命令触发）与宠物开关无关，
+     // 今天每只宠物的 /broadcast 轮询本来就不受开关门控——统一后至少不比现在多。
+     const [sayTick, setSayTick] = useState(0);
+-    const sayRef = useRef<Record<string, { text: string; image?: string; seq: number }>>({});
++    const sayRef = useRef<Record<string, { text: string; image?: string; feedback?: { eventId: string; source: 'care' }; seq: number; counter: number }>>({});
+     const [animCueTick, setAnimCueTick] = useState(0);
+-    const animCueRef = useRef<Record<string, { name: string; seq: number }>>({});
++    const animCueRef = useRef<Record<string, { name: string; feedback?: { eventId: string; source: 'care' }; seq: number; counter: number; suppressFeedbackForSay: boolean }>>({});
+     useEffect(() => {
+       if (!ready) return;
+       let alive = true;
+@@ -1683,7 +1960,16 @@
+             baseline = flattenCounters(s); // 首拉：只记基线，不渲染
+             return;
+           }
+-          for (const { path, leaf } of takeChanged(s, baseline)) {
++          const changes = takeChanged(s, baseline);
++          const isSayPath = (path: string) => path.startsWith('pets.') && path.endsWith('.say');
++          const sayChanges = changes.filter(({ path }) => isSayPath(path));
++          const changedSayPetIds = new Set<string>();
++          for (const { path, leaf } of sayChanges) {
++            if (readSay(leaf)) changedSayPetIds.add(path.slice('pets.'.length, -'.say'.length));
++          }
++          // 先派发本快照所有 say，随后才派发 anim；去重只使用同一快照的有效 say，
++          // 不靠写入顺序/时间窗猜测关联，带点号的 petId 仍保持完整。
++          for (const { path, leaf } of [...sayChanges, ...changes.filter(({ path }) => !isSayPath(path))]) {
+             if (leaf.data === null) continue;
+             if (path === 'sections.balance') {
+               const hit = readBalance(leaf);
+@@ -1703,7 +1989,7 @@
+               const petId = path.slice('pets.'.length, -'.say'.length);
+               const said = readSay(leaf);
+               if (said) {
+-                sayRef.current[petId] = { ...said, seq: (sayRef.current[petId]?.seq ?? 0) + 1 };
++                sayRef.current[petId] = { ...said, counter: leaf.counter, seq: (sayRef.current[petId]?.seq ?? 0) + 1 };
+                 setSayTick((t) => t + 1);
+               }
+             } else if (path.startsWith('pets.') && path.endsWith('.anim')) {
+@@ -1712,7 +1998,13 @@
+               const petId = path.slice('pets.'.length, -'.anim'.length);
+               const hit = readAnim(leaf);
+               if (hit) {
+-                animCueRef.current[petId] = { name: hit.name, seq: (animCueRef.current[petId]?.seq ?? 0) + 1 };
++                animCueRef.current[petId] = {
++                  name: hit.name,
++                  feedback: hit.feedback,
++                  counter: leaf.counter,
++                  suppressFeedbackForSay: !hit.feedback && changedSayPetIds.has(petId),
++                  seq: (animCueRef.current[petId]?.seq ?? 0) + 1,
++                };
+                 setAnimCueTick((t) => t + 1);
+               }
+             }
+--- a/src/client/settings.ts
++++ b/src/client/settings.ts
+@@ -5,16 +5,16 @@
+  * - 数据流：设置页持有「main 条目宠物列表」→ 保存时全量 PUT /dsh-pet-7340/config
+  *   （写用户层 main-config.jsonc = 可编辑层，文件宠物永不回写）
+  * - 数据入口：配置由 host readAllConfig 合并为**成品**（GET /dsh-pet-7340/config），
+- *   设置页只读 main 条目（可编辑）+ 统计文件宠物条数，不做任何校验
++ *   设置页编辑 main 条目，文件宠物常规字段只读；互动外观通过 petPresentations 单独保存
+  * - 即时生效：保存/同步后用 host 返回的**成品聚合**调用 petBridge.reload，
+  *   容器走同一份 flattenConfigPets 重新渲染，无需刷新页面（设置页不自己拼任何条目级字段）
+  *
+  * 样式对齐官方设置页：max-width 720px、全走 --dsw-alias-* 语义 token（主题跟随）。
+  */
+-import { PET_DISPLAYS } from '../shared/config';
++import { flattenConfigPets, PET_DISPLAYS } from '../shared/config';
+ import { DEFAULT_PHYSICS } from '../shared/physics';
+ import { NOTIFY_ICONS, reloadNotifications, requestNotificationPermission } from './notify';
+-import type { Corner, ModelSelection, Pet, PetDisplay, PhysicsParams } from '../shared/types';
++import type { Corner, ModelSelection, Pet, PetDisplay, PetPresentation, PhysicsParams } from '../shared/types';
+ import type { ChangeEvent, Dispatch, FunctionComponent, SetStateAction } from 'react';
+ import type * as ReactNS from 'react';
+ import type { jsx } from 'react/jsx-runtime';
+@@ -258,7 +258,25 @@
+   invalid: '请检查输入：大小需为正数，边距可为任意数字。',
+   busy: '保存中…',
+   extraPetsHint:
+-    '另 {n} 只额外宠物由 pet/ 目录文件定义（<名>-config.json + <名>-animation/ + <名>-memes/），它们不在此列表——改文件后浏览器刷新页面、桌面端右键「重载配置」即可生效。',
++    '另 {n} 只宠物由 pet/ 目录文件定义；可在本页调整互动外观，其它字段仍需修改宠物配置文件。',
++  filePetReadOnly: '这只宠物由文件定义，常规配置只读；互动外观可在下面调整。',
++  presentationTitle: '互动外观',
++  presentationHint: '单独保存到用户配置，不改动宠物素材包。修改后点击「保存」生效。',
++  presentationCustomize: '自定义互动外观',
++  presentationLegacy: '未设置互动外观，沿用原有显示。',
++  presentationRestore: '恢复原设置',
++  presentationRestorePending: '保存后恢复宠物配置中的原设置。',
++  presentationTheme: '主题',
++  'presentationTheme.silver': '银白',
++  'presentationTheme.orange': '暖橙',
++  'presentationTheme.tide': '海蓝',
++  presentationPop: '缩放反馈',
++  presentationPopHint: '互动时播放轻微的缩放反馈。',
++  presentationCloud: '云朵提醒',
++  presentationCloudHint: '使用云朵样式的互动提醒。',
++  presentationCloseSeconds: '提醒关闭时间（秒）',
++  presentationCloseSecondsHint: '3–20 秒；到时自动关闭提醒。',
++  invalidPresentation: '请检查互动外观：主题需为银白、暖橙或海蓝，关闭时间需为 3–20 秒。',
+   notifyToggle: '系统通知',
+   notifyToggleHint: '对话完成 / 生成失败 / 权限申请 / 用户选择，在窗口失焦时弹出系统级通知（桌面右下角）。',
+   whisperImageToggle: '碎碎念配图',
+@@ -413,7 +431,25 @@
+   invalid: 'Check your input: size must be positive; margins can be any number.',
+   busy: 'Saving…',
+   extraPetsHint:
+-    '{n} extra pet(s) are file-defined in the pet/ directory (<name>-config.json + <name>-animation/ + <name>-memes/). They are not in this list — after editing the files, refresh the page (browser) or right-click a desktop pet → "Reload config".',
++    '{n} pet(s) are defined in the pet/ directory. Their interaction appearance can be changed here; edit their files for other settings.',
++  filePetReadOnly: 'This pet is file-defined. Its regular settings are read-only; interaction appearance can be adjusted below.',
++  presentationTitle: 'Interaction appearance',
++  presentationHint: 'Saved separately in your user config without changing the pet pack. Click "Save" to apply.',
++  presentationCustomize: 'Customize interaction appearance',
++  presentationLegacy: 'No interaction appearance is configured; the existing display is kept.',
++  presentationRestore: 'Restore original settings',
++  presentationRestorePending: 'Saving will restore the original settings from the pet config.',
++  presentationTheme: 'Theme',
++  'presentationTheme.silver': 'Silver',
++  'presentationTheme.orange': 'Warm orange',
++  'presentationTheme.tide': 'Sea blue',
++  presentationPop: 'Scale feedback',
++  presentationPopHint: 'Play a gentle scaling response during interactions.',
++  presentationCloud: 'Cloud reminders',
++  presentationCloudHint: 'Use cloud styling for interaction reminders.',
++  presentationCloseSeconds: 'Reminder duration (seconds)',
++  presentationCloseSecondsHint: '3–20 seconds; reminders close automatically.',
++  invalidPresentation: 'Check interaction appearance: choose Silver, Warm orange or Sea blue and a duration of 3–20 seconds.',
+   notifyToggle: 'System notifications',
+   notifyToggleHint:
+     'OS-level toasts (bottom-right of the desktop) for conversation completion, failures, permission requests, and questions — only while this window is unfocused.',
+@@ -543,7 +579,7 @@
+   const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace';
+ 
+   /** 生成一个未占用的宠物 id（pet-2、pet-3…） */
+-  const nextId = (list: Pet[]): string => {
++  const nextId = (list: Array<Pick<Pet, 'id'>>): string => {
+     let n = 2;
+     for (; ; n++) {
+       const id = 'pet-' + n;
+@@ -898,10 +934,15 @@
+ 
+   return function PetConfigSection() {
+     const initPets = petBridge.current.filter((p) => !p.extra);
+-    // 文件定义宠物数量（pet/ 目录，不在本编辑列表；仅展示提示）
+-    const extraCount = petBridge.current.filter((p) => p.extra).length;
++    // 文件宠物加入同一组页签，仅互动外观可编辑；不混入 PUT 的 main pets 列表。
++    const [extraPets, setExtraPets] = useState<Pet[]>(petBridge.current.filter((p) => p.extra));
++    const extraCount = extraPets.length;
++    // 仅保留本轮实际编辑的覆盖；未触碰不传，null = 删除用户覆盖、恢复宠物原配置。
++    const [presentationOverrides, setPresentationOverrides] = useState<Record<string, PetPresentation | null>>({});
+     const [pets, setPets] = useState<Pet[]>(initPets.map((p) => ({ ...p, position: { ...p.position } })));
+-    const [selId, setSelId] = useState<string>(initPets[0]?.id ?? '');
++    const [selId, setSelId] = useState<string>(initPets[0]?.id ?? petBridge.current[0]?.id ?? '');
++    // 同一轮删除再添加不能复用旧 id，否则宿主按 id 保留的外观会落到新宠物。
++    const reservedPetIds = useRef<Set<string>>(new Set(petBridge.current.map((p) => p.id)));
+     const [saving, setBusy] = useState(false);
+     const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+     const [loadAttempt, setLoadAttempt] = useState(0);
+@@ -974,8 +1015,13 @@
+       const m = merged.main;
+       if (!m || !Array.isArray(m.pets)) throw new Error('Invalid config response');
+       const loadedPets = m.pets as Pet[];
++      const loadedExtraPets = flattenConfigPets(merged).filter((p) => p.extra);
++      const loadedAllPets = [...loadedPets, ...loadedExtraPets];
+       setPets(loadedPets.map((p) => ({ ...p, position: { ...p.position } })));
+-      setSelId((id) => (loadedPets.some((p) => p.id === id) ? id : (loadedPets[0]?.id ?? '')));
++      setExtraPets(loadedExtraPets);
++      setPresentationOverrides({});
++      reservedPetIds.current = new Set(loadedAllPets.map((p) => p.id));
++      setSelId((id) => (loadedAllPets.some((p) => p.id === id) ? id : (loadedAllPets[0]?.id ?? '')));
+       if (typeof m.notificationsEnabled === 'boolean') setNotifyEnabled(m.notificationsEnabled);
+       if (typeof m.whisperImageEnabled === 'boolean') setWhisperImage(m.whisperImageEnabled);
+       if (typeof m.chatImageEnabled === 'boolean') setChatImage(m.chatImageEnabled);
+@@ -1082,7 +1128,30 @@
+     };
+ 
+     // 当前选中的宠物对象（表单数据源）；selId 由 add/remove/sync 同步维护，列表非空时恒有效
+-    const cur = pets.find((p) => p.id === selId) ?? null;
++    const allPets = [...pets, ...extraPets];
++    const cur = allPets.find((p) => p.id === selId) ?? null;
++    const presentationTouched = !!cur && Object.prototype.hasOwnProperty.call(presentationOverrides, cur.id);
++    const presentationRestorePending = !!cur && presentationTouched && presentationOverrides[cur.id] === null;
++    const curPresentation = cur
++      ? presentationTouched
++        ? presentationOverrides[cur.id] ?? undefined
++        : cur.presentation
++      : undefined;
++    const customizePresentation = () => {
++      if (!cur || busy) return;
++      const value: PetPresentation = cur.presentation
++        ? { ...cur.presentation }
++        : { theme: 'silver', pop: true, cloud: true, closeSeconds: 8 };
++      setPresentationOverrides((pending) => ({ ...pending, [cur.id]: value }));
++    };
++    const updatePresentation = (patch: Partial<PetPresentation>) => {
++      if (!cur || !curPresentation || busy) return;
++      setPresentationOverrides((pending) => ({ ...pending, [cur.id]: { ...curPresentation, ...patch } }));
++    };
++    const restorePresentation = () => {
++      if (!cur || busy) return;
++      setPresentationOverrides((pending) => ({ ...pending, [cur.id]: null }));
++    };
+ 
+     // 更新选中的宠物：size 走顶层；position 子字段整体替换
+     const updateSel = (patch: Partial<Omit<Pet, 'position'>> & { position?: Partial<Pet['position']> }) =>
+@@ -1103,6 +1172,21 @@
+           !Number.isFinite(p.position.marginY)
+         ) {
+           setMsg({ kind: 'err', text: t('invalid') });
++          return false;
++        }
++      }
++      // 外观只校验本轮编辑值；省略的角色不生成覆盖，旧角色保持原逻辑。
++      for (const presentation of Object.values(presentationOverrides)) {
++        if (
++          presentation !== null &&
++          (!['silver', 'orange', 'tide'].includes(presentation.theme) ||
++            typeof presentation.pop !== 'boolean' ||
++            typeof presentation.cloud !== 'boolean' ||
++            !Number.isFinite(presentation.closeSeconds) ||
++            presentation.closeSeconds < 3 ||
++            presentation.closeSeconds > 20)
++        ) {
++          setMsg({ kind: 'err', text: t('invalidPresentation') });
+           return false;
+         }
+       }
+@@ -1152,7 +1236,12 @@
+       try {
+         // 通知总开关随保存一起写：UI 状态初始来自成品 main 条目（即保留用户手写值，不会静默覆盖）
+         const body: Record<string, unknown> = {
+-          pets: pets,
++          pets: pets.map((p) => {
++            const serialized = { ...p };
++            // GET 内的 presentation 是成品值，不能反写为原配置；此字段只经独立覆盖表保存。
++            delete serialized.presentation;
++            return serialized;
++          }),
+           notificationsEnabled: notifyEnabled,
+           whisperImageEnabled: whisperImage,
+           chatImageEnabled: chatImage,
+@@ -1168,6 +1257,7 @@
+           // 对话配图张数上限（同上；0 = 不限制）
+           chatImageLimit: chatImageLimit,
+         };
++        if (Object.keys(presentationOverrides).length > 0) body.petPresentations = presentationOverrides;
+         // force === true（用户在损坏弹窗里点了确认）：带 ?force=1 才允许按白名单重建损坏文件
+         const res = await fetch('/dsh-pet-7340/config' + (force === true ? '?force=1' : ''), {
+           method: 'PUT',
+@@ -1187,7 +1277,9 @@
+         }
+         if (!res.ok) throw new Error('HTTP ' + res.status);
+         // 同上：PUT 响应即成品聚合，容器据此重新拍平（新增/删除宠物、改大小位置都走这条路）
+-        petBridge.reload((await res.json()) as Record<string, Record<string, unknown>>);
++        const merged = (await res.json()) as Record<string, Record<string, unknown>>;
++        applyConfig(merged);
++        petBridge.reload(merged);
+         void reloadNotifications(); // 通知引擎重读开关：保存后即时生效，无需刷新页面
+         setMsg({ kind: 'ok', text: t('saved') });
+       } catch {
+@@ -1224,7 +1316,8 @@
+     const addPet = () => {
+       const tpl = petBridge.template;
+       if (!tpl) return;
+-      const id = nextId(pets);
++      const id = nextId([...allPets, ...Array.from(reservedPetIds.current, (id) => ({ id }))]);
++      reservedPetIds.current.add(id);
+       setPets((list) => [
+         ...list,
+         {
+@@ -1244,6 +1337,7 @@
+     };
+ 
+     const removeSel = () => {
++      if (!cur || cur.extra) return;
+       // 两种情形都走弹窗：能删 → 确认删除；只剩一只 → 说明删不了。
+       // 不再把「至少保留一个宠物」塞进按钮旁的消息行（那里离删除按钮很远，等于没提示）。
+       setDialog({ kind: pets.length <= 1 ? 'lastOne' : 'remove' });
+@@ -1252,6 +1346,11 @@
+     const doRemove = () => {
+       const list = pets.filter((p) => p.id !== selId);
+       setPets(list);
++      setPresentationOverrides((pending) => {
++        const next = { ...pending };
++        delete next[selId];
++        return next;
++      });
+       setSelId(list[0].id);
+     };
+ 
+@@ -1267,7 +1366,7 @@
+         step: key === 'size' ? '10' : '1',
+         min: key === 'size' ? '120' : '',
+         value: String(value),
+-        disabled: busy,
++        disabled: busy || !!cur?.extra,
+         onChange: (e: ChangeEvent<HTMLInputElement>) => setter(Number(e.target.value)),
+       });
+ 
+@@ -1365,7 +1464,7 @@
+           className: 'dsh-pet-cfg__tabs',
+           children: [
+             h('span', { key: 'label', className: 'dsh-pet-cfg__tabsLabel', children: t('petsLabel') }),
+-            ...pets.map((p) =>
++            ...allPets.map((p) =>
+               h('button', {
+                 key: p.id,
+                 type: 'button',
+@@ -1399,7 +1498,7 @@
+                       key: 'rm',
+                       type: 'button',
+                       onClick: removeSel,
+-                      disabled: busy,
++                      disabled: busy || !!cur.extra,
+                       className: 'dsh-pet-cfg__btn is-danger is-sm',
+                       style: { marginLeft: 'auto' },
+                       children: t('remove'),
+@@ -1416,7 +1515,7 @@
+                         type: 'text',
+                         className: inputClass,
+                         value: String(cur.name ?? ''),
+-                        disabled: busy,
++                        disabled: busy || !!cur.extra,
+                         maxLength: 50,
+                         onChange: (e: ChangeEvent<HTMLInputElement>) => updateSel({ name: e.target.value }),
+                       }),
+@@ -1432,7 +1531,7 @@
+                       h('select', {
+                         className: inputClass,
+                         value: cur.display,
+-                        disabled: busy,
++                        disabled: busy || !!cur.extra,
+                         onChange: (e: ChangeEvent<HTMLSelectElement>) =>
+                           updateSel({ display: e.target.value as PetDisplay }),
+                         children: PET_DISPLAYS.map((d) =>
+@@ -1457,7 +1556,7 @@
+                       h('select', {
+                         className: inputClass,
+                         value: cur.position.corner,
+-                        disabled: busy,
++                        disabled: busy || !!cur.extra,
+                         onChange: (e: ChangeEvent<HTMLSelectElement>) =>
+                           updateSel({ position: { corner: e.target.value as Corner } }),
+                         children: CORNERS.map((c) =>
+@@ -1487,12 +1586,22 @@
+                 h('div', {
+                   className: 'dsh-pet-cfg__grid4',
+                   children: [
+-                    toggleCell('balanceEnabled', !!cur.balanceEnabled, busy, (v) => updateSel({ balanceEnabled: v })),
+-                    toggleCell('whisperEnabled', !!cur.whisperEnabled, busy, (v) => updateSel({ whisperEnabled: v })),
+-                    toggleCell('workStatusEnabled', !!cur.workStatusEnabled, busy, (v) =>
++                    toggleCell('balanceEnabled', !!cur.balanceEnabled, busy || !!cur.extra, (v) =>
++                      updateSel({ balanceEnabled: v }),
++                    ),
++                    toggleCell('whisperEnabled', !!cur.whisperEnabled, busy || !!cur.extra, (v) =>
++                      updateSel({ whisperEnabled: v }),
++                    ),
++                    toggleCell('workStatusEnabled', !!cur.workStatusEnabled, busy || !!cur.extra, (v) =>
+                       updateSel({ workStatusEnabled: v }),
+                     ),
+-                    toggleCell('fixedEnabled', !!cur.fixedEnabled, busy, (v) => updateSel({ fixedEnabled: v }), true),
++                    toggleCell(
++                      'fixedEnabled',
++                      !!cur.fixedEnabled,
++                      busy || !!cur.extra,
++                      (v) => updateSel({ fixedEnabled: v }),
++                      true,
++                    ),
+                   ],
+                 }),
+               ],
+@@ -1501,6 +1610,90 @@
+               className: 'dsh-pet-cfg__note',
+               children: t('emptyPets'),
+             }),
++
++        // 沿用选中宠物与保存按钮；文件宠物只有这一组字段可编辑。
++        cur
++          ? h('div', {
++              className: 'dsh-pet-cfg__card',
++              children: [
++                cardHead(t('presentationTitle'), t('presentationHint')),
++                cur.extra ? h('p', { className: 'dsh-pet-cfg__note', children: t('filePetReadOnly') }) : null,
++                curPresentation
++                  ? h('div', {
++                      className: 'dsh-pet-cfg__grid2',
++                      children: [
++                        field(
++                          t('presentationTheme'),
++                          h('select', {
++                            className: inputClass,
++                            'aria-label': t('presentationTheme'),
++                            value: curPresentation.theme,
++                            disabled: busy,
++                            onChange: (e: ChangeEvent<HTMLSelectElement>) =>
++                              updatePresentation({ theme: e.target.value as PetPresentation['theme'] }),
++                            children: ['silver', 'orange', 'tide'].map((theme) =>
++                              h('option', { key: theme, value: theme, children: t('presentationTheme.' + theme) }),
++                            ),
++                          }),
++                        ),
++                        field(
++                          t('presentationCloseSeconds'),
++                          h('input', {
++                            type: 'number',
++                            className: inputClass,
++                            'aria-label': t('presentationCloseSeconds'),
++                            min: '3',
++                            max: '20',
++                            step: '1',
++                            value: String(curPresentation.closeSeconds),
++                            disabled: busy,
++                            onChange: (e: ChangeEvent<HTMLInputElement>) =>
++                              updatePresentation({ closeSeconds: Number(e.target.value) }),
++                          }),
++                          t('presentationCloseSecondsHint'),
++                          true,
++                        ),
++                        toggleCell('presentationPop', curPresentation.pop, busy, (pop) => updatePresentation({ pop })),
++                        toggleCell(
++                          'presentationCloud',
++                          curPresentation.cloud,
++                          busy,
++                          (cloud) => updatePresentation({ cloud }),
++                          true,
++                        ),
++                      ],
++                    })
++                  : h('p', {
++                      className: 'dsh-pet-cfg__note',
++                      role: presentationRestorePending ? 'status' : undefined,
++                      children: t(presentationRestorePending ? 'presentationRestorePending' : 'presentationLegacy'),
++                    }),
++                h('div', {
++                  className: 'dsh-pet-cfg__actions',
++                  children: [
++                    !curPresentation
++                      ? h('button', {
++                          type: 'button',
++                          className: 'dsh-pet-cfg__btn',
++                          disabled: busy,
++                          onClick: customizePresentation,
++                          children: t('presentationCustomize'),
++                        })
++                      : null,
++                    curPresentation
++                      ? h('button', {
++                          type: 'button',
++                          className: 'dsh-pet-cfg__btn',
++                          disabled: busy,
++                          onClick: restorePresentation,
++                          children: t('presentationRestore'),
++                        })
++                      : null,
++                  ],
++                }),
++              ],
++            })
++          : null,
+ 
+         // 全局开关卡（需求 4：四个开关一行）。
+         // 四个开关行为**一致**：切换只改本地状态，随「保存」整包写入用户级配置——不做即时写入
+--- a/src/host/config.ts
++++ b/src/host/config.ts
+@@ -40,6 +40,22 @@
+ /** 位置角落白名单 */
+ const CORNERS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
+ const CORNER_SET: ReadonlySet<string> = new Set(CORNERS);
++
++/** The only four presentation keys accepted from persisted or editable configuration. */
++export function normalizePresentation(value: unknown): {
++  theme: 'silver' | 'orange' | 'tide'; pop: boolean; cloud: boolean; closeSeconds: number;
++} | undefined {
++  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
++  const raw = value as Record<string, unknown>;
++  if (Object.keys(raw).some((key) => !['theme', 'pop', 'cloud', 'closeSeconds'].includes(key))) return undefined;
++  const theme = raw.theme ?? 'silver';
++  const pop = raw.pop ?? true;
++  const cloud = raw.cloud ?? true;
++  const closeSeconds = raw.closeSeconds ?? 8;
++  if (typeof theme !== 'string' || !['silver', 'orange', 'tide'].includes(theme) || typeof pop !== 'boolean' || typeof cloud !== 'boolean') return undefined;
++  if (typeof closeSeconds !== 'number' || !Number.isFinite(closeSeconds) || closeSeconds < 3 || closeSeconds > 20) return undefined;
++  return { theme: theme as 'silver' | 'orange' | 'tide', pop, cloud, closeSeconds };
++}
+ 
+ /** display 白名单 */
+ const PET_DISPLAYS = ['web', 'desktop', 'both', 'none'] as const;
+@@ -497,9 +513,14 @@
+   const basePos = base.position && typeof base.position === 'object' ? (base.position as Record<string, unknown>) : {};
+   const ownPos = p.position && typeof p.position === 'object' ? (p.position as Record<string, unknown>) : {};
+ 
++  const presentation = normalizePresentation(p.presentation);
++  if (p.presentation !== undefined && p.presentation !== null && !presentation) {
++    warnOnce(`${label}:presentation:${id}`, `宠物「${id}」的 presentation 非法，已保留原互动表现`);
++  }
+   return {
+     id,
+     name,
++    ...(presentation ? { presentation } : {}),
+     size: petNumber(p.size, base.size, 1, label, 'size', id),
+     balanceEnabled: petBool(p.balanceEnabled, base.balanceEnabled, label, 'balanceEnabled', id),
+     whisperEnabled: petBool(p.whisperEnabled, base.whisperEnabled, label, 'whisperEnabled', id),
+@@ -545,6 +566,16 @@
+     }
+     out[file.prefix] = mergeEntry(filePetBase, parsed, file.prefix + '-config.json', basePets, seenIds);
+   }
++  // User overrides are keyed only by existing ids, and never rewrite pack files.
++  const overrides = mainOverlay?.petPresentations;
++  if (overrides && typeof overrides === 'object' && !Array.isArray(overrides)) {
++    for (const [petId, rawPresentation] of Object.entries(overrides as Record<string, unknown>)) {
++      const target = findPetInstance(out, petId);
++      const presentation = normalizePresentation(rawPresentation);
++      if (target && presentation) target.pet.presentation = presentation;
++      else warnOnce(`petPresentations:${petId}`, `宠物互动外观覆盖「${petId}」无效，已跳过`);
++    }
++  }
+   return out;
+ }
+ 
+@@ -584,6 +615,7 @@
+ export function saveUserConfig(
+   raw: unknown,
+   existing?: Record<string, unknown>,
++  knownPetIds?: ReadonlySet<string>,
+ ): { pets: unknown[]; [key: string]: unknown } | null {
+   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+   const arr = Array.isArray(o.pets) ? o.pets : null;
+@@ -621,9 +653,15 @@
+     const marginX = Number(pos.marginX);
+     const marginY = Number(pos.marginY);
+     if (!Number.isFinite(marginX) || !Number.isFinite(marginY)) return null;
++    const previousPet = Array.isArray(existing?.pets)
++      ? (existing.pets as Record<string, unknown>[]).find((pet) => pet?.id === id) : undefined;
++    const rawPresentation = previousPet?.presentation;
++    const presentation = normalizePresentation(rawPresentation);
++    if (rawPresentation !== undefined && rawPresentation !== null && !presentation) return null;
+     out.push({
+       id,
+       name,
++      ...(presentation ? { presentation } : {}),
+       size,
+       balanceEnabled,
+       whisperEnabled,
+@@ -632,6 +670,28 @@
+       display,
+       position: { corner, marginX, marginY },
+     });
++  }
++  let petPresentations: Record<string, unknown> | undefined;
++  if (o.petPresentations !== undefined || (knownPetIds && existing?.petPresentations !== undefined)) {
++    if (o.petPresentations !== undefined && (!o.petPresentations || typeof o.petPresentations !== 'object' || Array.isArray(o.petPresentations))) return null;
++    const existingOverrides = existing?.petPresentations;
++    petPresentations = Object.create(null) as Record<string, unknown>;
++    if (existingOverrides && typeof existingOverrides === 'object' && !Array.isArray(existingOverrides)) {
++      for (const [petId, value] of Object.entries(existingOverrides)) {
++        const presentation = normalizePresentation(value);
++        if (presentation && (!knownPetIds || knownPetIds.has(petId) || (out as Record<string, unknown>[]).some((pet) => pet.id === petId))) petPresentations[petId] = presentation;
++      }
++    }
++    const ids = new Set([...(knownPetIds ?? []), ...(out as Record<string, unknown>[]).map((pet) => String(pet.id))]);
++    for (const [petId, value] of Object.entries((o.petPresentations ?? {}) as Record<string, unknown>)) {
++      if (!ids.has(petId)) return null;
++      if (value === null) delete petPresentations[petId];
++      else {
++        const presentation = normalizePresentation(value);
++        if (!presentation) return null;
++        petPresentations[petId] = presentation;
++      }
++    }
+   }
+   const ne = o.notificationsEnabled;
+   if (ne !== undefined && typeof ne !== 'boolean') return null;
+@@ -669,6 +729,7 @@
+   // 白名单可编辑字段：pets 来自请求体，其余（四个全局开关 / physics / 两个模型 /
+   // 对话历史条数）同样只在请求体**真的传了**时才写（未传则走下面的透传保留，不凭空造值）
+   const outConfig: { pets: unknown[]; [key: string]: unknown } = { pets: out };
++  if (petPresentations !== undefined) outConfig.petPresentations = petPresentations;
+   if (ne !== undefined) outConfig.notificationsEnabled = ne;
+   if (wie !== undefined) outConfig.whisperImageEnabled = wie;
+   if (cie !== undefined) outConfig.chatImageEnabled = cie;
+@@ -684,6 +745,7 @@
+   // 白名单字段只在「请求体传了」时才算白名单（已由上方写入）；未传时走这里透传磁盘旧值——
+   // 否则整包调用的调用方漏传一个字段，就会把用户既有设置悄悄抹成默认。
+   const bodyOwned = new Set(['pets']);
++  if (petPresentations !== undefined) bodyOwned.add('petPresentations');
+   if (ne !== undefined) bodyOwned.add('notificationsEnabled');
+   if (wie !== undefined) bodyOwned.add('whisperImageEnabled');
+   if (cie !== undefined) bodyOwned.add('chatImageEnabled');
+--- a/src/host/feedback.ts
++++ b/src/host/feedback.ts
+@@ -0,0 +1,7 @@
++/** Safe cross-command correlation metadata. Unknown fields never reach the renderer. */
++export function normalizeFeedbackMetadata(value: unknown): { eventId: string; source: 'care' } | undefined {
++  if (!value || typeof value !== 'object') return undefined;
++  const raw = value as Record<string, unknown>;
++  if (raw.source !== 'care' || typeof raw.eventId !== 'string' || !/^[A-Za-z0-9_.:-]{1,200}$/.test(raw.eventId)) return undefined;
++  return { eventId: raw.eventId, source: 'care' };
++}
+--- a/src/host/index.ts
++++ b/src/host/index.ts
+@@ -75,6 +75,7 @@
+ import { limitPool, pickMeme, readMemePool } from './memes';
+ import { decideBroadcast, normalizeBroadcastText } from './broadcast';
+ import { decideAnim } from './anim';
++import { normalizeFeedbackMetadata } from './feedback';
+ import {
+   findPetInstance,
+   flattenPetList,
+@@ -820,7 +821,10 @@
+           // 的 config.jsonc 原文，用严格 JSON.parse 会在这里抛错并被吞掉 → existing 变 undefined
+           // → 白名单重建 → 用户的高级字段全丢（老 bug 的复发路径，已由守卫测试钉住）。
+           const existing = readUserConfig(configPaths);
+-          const clean = saveUserConfig(parsed, existing);
++          const mergedBeforeSave = readAllConfig(configPaths);
++          const knownPetIds = new Set(Object.entries(mergedBeforeSave).filter(([entry]) => entry !== 'main')
++            .flatMap(([, conf]) => Array.isArray(conf.pets) ? conf.pets.map((pet) => String((pet as { id: unknown }).id)) : []));
++          const clean = saveUserConfig(parsed, existing, knownPetIds);
+           if (!clean) {
+             return {
+               kind: 'json',
+@@ -1022,7 +1026,8 @@
+           memeDirs: memeDirsFor,
+         });
+         if (!d.ok) return { kind: 'json', status: 200, obj: { ok: false, reason: d.reason, message: d.message } };
+-        state.writePet(d.petId, 'say', d.image ? { text: d.text, image: d.image } : { text: d.text });
++        const feedback = normalizeFeedbackMetadata(o.feedback);
++        state.writePet(d.petId, 'say', { text: d.text, ...(d.image ? { image: d.image } : {}), ...(feedback ? { feedback } : {}) });
+         return { kind: 'json', status: 200, obj: { ok: true } };
+       } catch (e) {
+         // 配置读取失败等（安装损坏）→ 显式失败，不静默
+@@ -1062,7 +1067,8 @@
+           name: o.name,
+         });
+         if (!d.ok) return { kind: 'json', status: 200, obj: { ok: false, reason: d.reason, message: d.message } };
+-        state.writePet(d.petId, 'anim', { name: d.name });
++        const feedback = normalizeFeedbackMetadata(o.feedback);
++        state.writePet(d.petId, 'anim', { name: d.name, ...(feedback ? { feedback } : {}) });
+         return { kind: 'json', status: 200, obj: { ok: true } };
+       } catch (e) {
+         // 配置读取失败等（安装损坏）→ 显式失败，不静默
+--- a/src/shared/feedback/feedback-core.mjs
++++ b/src/shared/feedback/feedback-core.mjs
+@@ -0,0 +1,60 @@
++/** Renderer-independent feedback state and placement. All geometry uses one CSS/DIP coordinate system. */
++const clamp=(n,min,max)=>Math.min(Math.max(n,min),max);
++const finite=(value,fallback)=>Number.isFinite(Number(value))?Number(value):fallback;
++export function normalizeFeedback(raw,options={}){
++ if(!raw||typeof raw!=='object')return null;
++ const eventId=String(raw.eventId??'').trim();
++ if(!eventId||Array.from(eventId).length>200)return null;
++ const limit=Math.trunc(clamp(finite(options.maxCharacters,120),1,500));
++ let text=String(raw.text??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/gu,'').replace(/\s+/gu,' ').trim();
++ const chars=Array.from(text);if(chars.length>limit)text=chars.slice(0,Math.max(0,limit-1)).join('')+'…';
++ if(!text)return null;
++ return {eventId,text,fallback:raw.fallback===true,trigger:raw.trigger==='click'?'click':'care',via:raw.via==='keyboard'?'keyboard':'pointer',durationMs:clamp(finite(raw.durationMs,finite(options.durationMs,8000)),250,60000)};
++}
++export function createFeedbackState(options={}){
++ return {phase:'hidden',eventId:null,text:'',fallback:false,expiresAt:0,seenIds:[],documentHidden:false,suppressClickUntil:0,options:{durationMs:options.durationMs,maxCharacters:options.maxCharacters}};
++}
++const clear=(state,phase='hidden')=>({...state,phase,eventId:null,text:'',fallback:false,expiresAt:0});
++export function reduceFeedback(state,action,now=0){
++ if(state.phase==='destroyed')return state;
++ if(action.type==='destroy')return {...clear(state,'destroyed'),seenIds:[]};
++ if(action.type==='dragstart')return clear(state,'dragging');
++ if(action.type==='dragend')return {...clear(state),suppressClickUntil:now+300};
++ if(action.type==='background')return {...(action.hidden?clear(state):state),documentHidden:Boolean(action.hidden)};
++ if(action.type==='close')return state.phase==='visible'?clear(state):state;
++ if(action.type==='expire')return state.phase==='visible'&&now>=state.expiresAt?clear(state):state;
++ if(action.type!=='show')return state;
++ const event=normalizeFeedback(action.event,state.options);
++ if(!event)return state;
++ if(state.seenIds.includes(event.eventId)){
++  if(state.phase==='visible'&&state.eventId===event.eventId&&now<state.expiresAt&&state.fallback&&!event.fallback)return {...state,text:event.text,fallback:false};
++  return state;
++ }
++ const seenIds=[...state.seenIds,event.eventId].slice(-64);
++ if(state.documentHidden||state.phase==='dragging'||(event.trigger==='click'&&now<state.suppressClickUntil))return {...state,seenIds};
++ return {...state,phase:'visible',eventId:event.eventId,text:event.text,fallback:event.fallback,expiresAt:now+event.durationMs,seenIds};
++}
++function rect(value){
++ if(!value)return null;
++ const x=Number(value.x??value.left),y=Number(value.y??value.top),width=Number(value.width),height=Number(value.height);
++ return [x,y,width,height].every(Number.isFinite)&&width>0&&height>0?{x,y,width,height}:null;
++}
++export function placeCloud({anchor,bubble,viewport,padding=12,gap=12}={}){
++ anchor=rect(anchor);viewport=rect(viewport);
++ if(!anchor||!viewport||!bubble||![bubble.width,bubble.height].every(v=>Number.isFinite(v)&&v>0))return null;
++ padding=clamp(finite(padding,12),0,Math.min(viewport.width,viewport.height)/4);
++ gap=Math.max(0,finite(gap,12));
++ const maxWidth=viewport.width-2*padding,maxHeight=viewport.height-2*padding;
++ const width=Math.min(bubble.width,maxWidth),height=Math.min(bubble.height,maxHeight);
++ const minX=viewport.x+padding,minY=viewport.y+padding,maxX=viewport.x+viewport.width-padding,maxY=viewport.y+viewport.height-padding;
++ const above=anchor.y-gap-height,below=anchor.y+anchor.height+gap;
++ const placement=above>=minY?'above':below+height<=maxY?'below':(anchor.y-minY>=maxY-(anchor.y+anchor.height)?'above':'below');
++ const x=clamp(anchor.x+anchor.width/2-width/2,minX,maxX-width);
++ const y=clamp(placement==='above'?above:below,minY,maxY-height);
++ const tailPadding=Math.min(18,width/2);
++ const tailX=clamp(anchor.x+anchor.width/2-x,tailPadding,width-tailPadding);
++ return {x,y,width,height,placement,tailX,maxWidth,maxHeight};
++}
++export function motionKeyframes(reduced=false){
++ return reduced?[]:[{scale:1,offset:0},{scale:.97,offset:.32},{scale:1.01,offset:.72},{scale:1,offset:1}];
++}
+--- a/src/shared/feedback/feedback-dom.d.mts
++++ b/src/shared/feedback/feedback-dom.d.mts
+@@ -0,0 +1,24 @@
++export type FeedbackTheme = 'silver' | 'orange' | 'tide';
++export interface FeedbackRect { x: number; y: number; width: number; height: number }
++export interface FeedbackEvent { eventId: string; text: string; trigger: 'click' | 'care'; via?: 'pointer' | 'keyboard'; fallback?: boolean }
++export interface FeedbackPresentation { theme?: FeedbackTheme; pop?: boolean; cloud?: boolean; closeSeconds?: number }
++export interface FeedbackController {
++  show(event: FeedbackEvent): boolean;
++  close(): boolean;
++  dragStart(): boolean;
++  dragEnd(): boolean;
++  reposition(): void;
++  destroy(): void;
++  getInteractiveRects(): FeedbackRect[];
++  getState(): { phase: string; eventId: string | null; text: string; expiresAt: number; seenIds: string[] };
++  setTheme(theme: FeedbackTheme): void;
++  setReducedMotion(reduced: boolean): void;
++  setPresentation(presentation: FeedbackPresentation): void;
++  readonly element: HTMLElement;
++}
++export function createPetFeedback(options: {
++  actor: HTMLElement; anchor?: HTMLElement; theme?: FeedbackTheme; portal?: HTMLElement;
++  durationMs?: number; pop?: boolean; cloud?: boolean; maxCharacters?: number; maxWidth?: number; padding?: number;
++  getViewport?: () => FeedbackRect;
++  onRegionsChange?: (rects: FeedbackRect[], visible: boolean) => void;
++}): FeedbackController;
+--- a/src/shared/feedback/feedback-dom.mjs
++++ b/src/shared/feedback/feedback-dom.mjs
+@@ -0,0 +1,110 @@
++import {createFeedbackState,reduceFeedback,placeCloud,motionKeyframes} from './feedback-core.mjs';
++import {FEEDBACK_CSS} from './feedback-styles.mjs';
++
++/** Needs a DEDICATED actor wrapper; keep upstream mirror/video/hitbox transforms inside it.
++ * getViewport returns a rectangle in the same CSS/DIP coordinate system as getBoundingClientRect.
++ * Desktop adapters must use helper-window ∩ current work-area and existing input-region IPC.
++ * This module never calls focus, captures keyboard input globally, opens windows or speaks.
++ */
++export function createPetFeedback({actor,anchor=actor,theme='silver',pop=true,cloud=true,portal,durationMs=8000,maxCharacters=120,maxWidth=280,padding=12,getViewport,onRegionsChange=()=>{}}={}){
++ if(!actor?.ownerDocument||!anchor?.getBoundingClientRect)throw new TypeError('An actor wrapper and measurable anchor are required');
++ const doc=actor.ownerDocument,win=doc.defaultView;
++ if(!win)throw new TypeError('The actor needs a renderer window');
++ if(!doc.querySelector('style[data-dsh-feedback-css]')){const style=doc.createElement('style');style.dataset.dshFeedbackCss='';style.textContent=FEEDBACK_CSS;doc.head.append(style);}
++ const bubble=doc.createElement('div');bubble.className='dsh-feedback-cloud';bubble.dataset.open='false';bubble.setAttribute('aria-hidden','true');
++ const body=doc.createElement('div');body.className='fb-body';
++ const lobes=doc.createElement('span');lobes.className='fb-lobes';lobes.setAttribute('aria-hidden','true');for(let i=0;i<3;i++)lobes.append(doc.createElement('i'));
++ const text=doc.createElement('div');text.className='fb-text';text.setAttribute('role','status');text.setAttribute('aria-live','polite');text.setAttribute('aria-atomic','true');
++ const close=doc.createElement('button');close.className='fb-close';close.type='button';close.tabIndex=-1;close.textContent='×';close.setAttribute('aria-label','关闭提醒');
++ const tail=doc.createElement('span');tail.className='fb-tail';tail.setAttribute('aria-hidden','true');body.append(lobes,text,close);bubble.append(body,tail);(portal||doc.body).append(bubble);
++ let state=createFeedbackState({durationMs,maxCharacters}),timer=null,frame=null,motion=null,disposed=false,lastRect='',lastViewport='',measured=null,lastRegions='';
++ let reducedOverride=false,popEnabled=pop!==false,cloudEnabled=cloud!==false,layoutAvailable=true;
++ const reduced=win.matchMedia('(prefers-reduced-motion: reduce)');
++ const now=()=>win.performance.now();
++ const active=()=>state.phase==='visible';
++ const visible=()=>active()&&cloudEnabled&&layoutAvailable;
++ const themeName=value=>['silver','orange','tide'].includes(value)?value:'silver';
++ bubble.dataset.theme=themeName(theme);
++ const viewport=()=>{if(getViewport)return getViewport();const v=win.visualViewport;return {x:v?.offsetLeft||0,y:v?.offsetTop||0,width:v?.width||win.innerWidth,height:v?.height||win.innerHeight};};
++ const bounds=element=>{const r=element.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
++ function interactiveRects(){if(!visible())return [];const regions=[bounds(close)];if(bubble.dataset.scrollable==='true')regions.push(bounds(text));return regions;}
++ function notifyRegions(){const regions=interactiveRects();const key=JSON.stringify([visible(),regions]);if(key!==lastRegions){lastRegions=key;onRegionsChange(regions,visible());}}
++ function cancelMotion(){if(motion){motion.cancel();motion=null;}}
++ function animate(event){
++  if(!popEnabled||reduced.matches||reducedOverride||event?.via==='keyboard'||typeof actor.animate!=='function'){cancelMotion();return;}
++  // A dedicated wrapper owns scale. Cancel the old effect; never concatenate transforms or animations.
++  let start=1;try{const value=win.getComputedStyle(actor).transform;if(value&&value!=='none')start=Math.hypot(...value.match(/matrix\(([^)]+)\)/)?.[1].split(',').slice(0,2).map(Number));}catch{}
++  if(!Number.isFinite(start))start=1;
++  cancelMotion();
++  const keyframes=motionKeyframes(false).map((f,i)=>({transform:`scale(${i===0?start:f.scale})`,offset:f.offset}));
++  motion=actor.animate(keyframes,{duration:220,easing:'cubic-bezier(.22,1,.36,1)'});
++  const current=motion;current.onfinish=()=>{if(motion===current)motion=null;};
++ }
++ function measure(){
++  if(disposed||!visible())return;
++  const v=viewport();if(!v||!Number.isFinite(v.width)||!Number.isFinite(v.height)||v.width<=0||v.height<=0)return;
++  const key=[v.x,v.y,v.width,v.height].join(',');
++  if(key!==lastViewport||!measured){
++   const availableWidth=Math.max(1,v.width-2*Math.min(padding,v.width/4));
++   const availableHeight=Math.max(1,v.height-2*Math.min(padding,v.height/4));
++   bubble.style.maxWidth=Math.min(maxWidth,availableWidth)+'px';bubble.style.minWidth=Math.min(140,availableWidth)+'px';
++   bubble.style.setProperty('--fb-text-height',Math.max(20,availableHeight-62)+'px');
++   measured={width:bubble.offsetWidth,height:bubble.offsetHeight};lastViewport=key;
++  }
++  const result=placeCloud({anchor:bounds(anchor),bubble:measured,viewport:v,padding});if(!result)return;
++  const rectKey=[result.x,result.y,result.tailX,result.placement].join(',');
++  if(rectKey!==lastRect){bubble.style.left=result.x+'px';bubble.style.top=result.y+'px';bubble.style.setProperty('--fb-tail-x',result.tailX+'px');bubble.dataset.placement=result.placement;lastRect=rectKey;}
++  bubble.dataset.scrollable=String(text.scrollHeight>text.clientHeight+1);
++  notifyRegions();
++ }
++ function scheduleExpiry(){if(timer!==null)win.clearTimeout(timer);timer=win.setTimeout(()=>{timer=null;if(!apply({type:'expire'})&&active())scheduleExpiry();},Math.max(1,Math.ceil(state.expiresAt-now())));}
++ function track(){frame=null;if(disposed||!visible())return;measure();frame=win.requestAnimationFrame(track);}
++ function reposition(){const v=viewport();layoutAvailable=Boolean(v&&Number.isFinite(v.width)&&Number.isFinite(v.height)&&v.width>=96&&v.height>=112);syncVisibility();measured=null;lastViewport='';lastRect='';if(visible()){measure();if(frame===null)frame=win.requestAnimationFrame(track);}else{if(frame!==null){win.cancelAnimationFrame(frame);frame=null;}notifyRegions();}}
++ function syncVisibility(){bubble.dataset.open=String(visible());bubble.setAttribute('aria-hidden',String(!visible()));close.tabIndex=visible()?0:-1;}
++ function renderBubble(){if(active()&&cloudEnabled)reposition();else{syncVisibility();if(frame!==null){win.cancelAnimationFrame(frame);frame=null;}notifyRegions();}}
++ function apply(action,event){
++  if(disposed)return false;
++  const before=state;state=reduceFeedback(state,action,now());if(state===before)return false;
++  if(timer!==null){win.clearTimeout(timer);timer=null;}
++  if(active()){
++   text.textContent=state.text;renderBubble();scheduleExpiry();
++   if(action.type==='show'&&state.eventId!==before.eventId)animate(event);
++  }else{
++   renderBubble();cancelMotion();
++  }
++  return true;
++ }
++ close.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();});
++ close.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();apply({type:'close'});});
++ close.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();apply({type:'close'});}});
++ const onVisibility=()=>apply({type:'background',hidden:doc.hidden});
++ const onReduced=()=>{bubble.dataset.reduced=String(reduced.matches||reducedOverride);if(reduced.matches||reducedOverride)cancelMotion();};onReduced();
++ const onLayout=()=>reposition();
++ doc.addEventListener('visibilitychange',onVisibility);win.addEventListener('resize',onLayout);win.addEventListener('scroll',onLayout,{passive:true,capture:true});
++ win.visualViewport?.addEventListener('resize',onLayout);win.visualViewport?.addEventListener('scroll',onLayout);
++ reduced.addEventListener?.('change',onReduced);
++ let dprQuery=null;
++ const onDpr=()=>{dprQuery?.removeEventListener?.('change',onDpr);dprQuery=win.matchMedia(`(resolution: ${win.devicePixelRatio}dppx)`);dprQuery.addEventListener?.('change',onDpr);reposition();};onDpr();
++ const observer=typeof win.ResizeObserver==='function'?new win.ResizeObserver(()=>reposition()):null;observer?.observe(body);observer?.observe(anchor);
++ doc.fonts?.ready.then(()=>{if(!disposed)reposition();});
++ if(doc.hidden)onVisibility();
++ return {
++  show(event){return apply({type:'show',event},event);},
++  close(){return apply({type:'close'});},
++  dragStart(){return apply({type:'dragstart'});},
++  dragEnd(){return apply({type:'dragend'});},
++  reposition,
++  getState(){return {...state,seenIds:[...state.seenIds],options:{...state.options}};},
++  getInteractiveRects:interactiveRects,
++  setTheme(value){bubble.dataset.theme=themeName(value);},
++  setReducedMotion(value){reducedOverride=Boolean(value);onReduced();},
++  setPresentation(value={}){if(disposed)return;if(value.theme!==undefined)bubble.dataset.theme=themeName(value.theme);if(typeof value.pop==='boolean'){popEnabled=value.pop;if(!popEnabled)cancelMotion();}if(typeof value.cloud==='boolean')cloudEnabled=value.cloud;if(Number.isFinite(value.closeSeconds))state={...state,options:{...state.options,durationMs:Math.min(60000,Math.max(250,value.closeSeconds*1000))}};renderBubble();},
++  get element(){return bubble;},
++  destroy(){
++   if(disposed)return;apply({type:'destroy'});disposed=true;observer?.disconnect();
++   doc.removeEventListener('visibilitychange',onVisibility);win.removeEventListener('resize',onLayout);win.removeEventListener('scroll',onLayout,true);
++   win.visualViewport?.removeEventListener('resize',onLayout);win.visualViewport?.removeEventListener('scroll',onLayout);
++   reduced.removeEventListener?.('change',onReduced);dprQuery?.removeEventListener?.('change',onDpr);bubble.remove();
++  },
++ };
++}
+--- a/src/shared/feedback/feedback-styles.mjs
++++ b/src/shared/feedback/feedback-styles.mjs
+@@ -0,0 +1,2 @@
++// Generated from feedback.css by build-demo.mjs.
++export const FEEDBACK_CSS=".dsh-feedback-cloud{--fb-fill:#fffaff;--fb-line:#d7c9e7;--fb-ink:#62506f;--fb-shadow:#51405f20;position:fixed;box-sizing:border-box;padding:14px 2px 14px;z-index:2147482900;width:max-content;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(4px) scale(.985);transform-origin:var(--fb-tail-x,50%) bottom;transition:opacity 110ms ease-out,transform 160ms cubic-bezier(.22,1,.36,1),visibility 0s 110ms;font:14px/1.6 \"PingFang SC\",\"Microsoft YaHei\",system-ui,sans-serif;color:var(--fb-ink)}\n.dsh-feedback-cloud[data-theme=orange]{--fb-fill:#fff8ed;--fb-line:#e8c99f;--fb-ink:#79533c;--fb-shadow:#80502e1c}\n.dsh-feedback-cloud[data-theme=tide]{--fb-fill:#f3fbff;--fb-line:#b0d3e2;--fb-ink:#37657a;--fb-shadow:#285f751c}\n.dsh-feedback-cloud[data-open=true]{opacity:1;visibility:visible;transform:translateY(0) scale(1);transition-delay:0s}\n.dsh-feedback-cloud[data-placement=below]{transform-origin:var(--fb-tail-x,50%) top}\n.dsh-feedback-cloud *{box-sizing:border-box}\n.dsh-feedback-cloud .fb-body{position:relative;min-height:52px;padding:15px 38px 15px 18px;border:1.5px solid var(--fb-line);border-radius:23px 26px 22px 25px;background:var(--fb-fill);box-shadow:0 4px 14px var(--fb-shadow)}\n.dsh-feedback-cloud .fb-lobes{position:absolute;inset:0;pointer-events:none}\n.dsh-feedback-cloud .fb-lobes i{position:absolute;top:-12px;left:18%;width:35px;height:16px;border:1.5px solid var(--fb-line);border-bottom:0;border-radius:50% 50% 0 0 / 100% 100% 0 0;background:var(--fb-fill)}\n.dsh-feedback-cloud .fb-lobes i:nth-child(2){left:40%;top:-13px;width:48px;height:17px}\n.dsh-feedback-cloud .fb-lobes i:nth-child(3){left:66%;top:-9px;width:29px;height:13px}\n.dsh-feedback-cloud .fb-text{position:relative;white-space:normal;overflow-wrap:anywhere;overflow:auto;max-height:var(--fb-text-height,160px);overscroll-behavior:contain;scrollbar-width:thin}\n.dsh-feedback-cloud .fb-close{position:absolute;right:7px;top:8px;width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--fb-ink);font:20px/1 system-ui,sans-serif;cursor:pointer;pointer-events:none;opacity:.65;padding:0}\n.dsh-feedback-cloud[data-open=true] .fb-close{pointer-events:auto}\n.dsh-feedback-cloud[data-open=true][data-scrollable=true] .fb-text{pointer-events:auto}\n.dsh-feedback-cloud .fb-close:hover{background:color-mix(in srgb,var(--fb-line) 28%,transparent);opacity:1}\n.dsh-feedback-cloud .fb-close:focus-visible{outline:2px solid var(--fb-ink);outline-offset:1px}\n.dsh-feedback-cloud .fb-tail{position:absolute;width:12px;height:10px;left:calc(var(--fb-tail-x,50%) - 6px);bottom:8px;background:var(--fb-fill);border:1.5px solid var(--fb-line);border-radius:50%;pointer-events:none}\n.dsh-feedback-cloud .fb-tail:after{content:\"\";position:absolute;width:5px;height:5px;left:4px;top:11px;border:1px solid var(--fb-line);border-radius:50%;background:var(--fb-fill)}\n.dsh-feedback-cloud[data-placement=below] .fb-tail{bottom:auto;top:8px}\n.dsh-feedback-cloud[data-placement=below] .fb-tail:after{top:auto;bottom:11px}\n@media(prefers-reduced-motion:reduce){.dsh-feedback-cloud{transform:none;transition:opacity 100ms linear,visibility 0s 100ms}.dsh-feedback-cloud[data-open=true]{transform:none;transition-delay:0s}}\n\n.dsh-feedback-cloud[data-reduced=true]{transform:none;transition:opacity 100ms linear,visibility 0s 100ms}.dsh-feedback-cloud[data-reduced=true][data-open=true]{transform:none;transition-delay:0s}\n";
+--- a/src/shared/feedback/feedback.css
++++ b/src/shared/feedback/feedback.css
+@@ -0,0 +1,24 @@
++.dsh-feedback-cloud{--fb-fill:#fffaff;--fb-line:#d7c9e7;--fb-ink:#62506f;--fb-shadow:#51405f20;position:fixed;box-sizing:border-box;padding:14px 2px 14px;z-index:2147482900;width:max-content;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(4px) scale(.985);transform-origin:var(--fb-tail-x,50%) bottom;transition:opacity 110ms ease-out,transform 160ms cubic-bezier(.22,1,.36,1),visibility 0s 110ms;font:14px/1.6 "PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--fb-ink)}
++.dsh-feedback-cloud[data-theme=orange]{--fb-fill:#fff8ed;--fb-line:#e8c99f;--fb-ink:#79533c;--fb-shadow:#80502e1c}
++.dsh-feedback-cloud[data-theme=tide]{--fb-fill:#f3fbff;--fb-line:#b0d3e2;--fb-ink:#37657a;--fb-shadow:#285f751c}
++.dsh-feedback-cloud[data-open=true]{opacity:1;visibility:visible;transform:translateY(0) scale(1);transition-delay:0s}
++.dsh-feedback-cloud[data-placement=below]{transform-origin:var(--fb-tail-x,50%) top}
++.dsh-feedback-cloud *{box-sizing:border-box}
++.dsh-feedback-cloud .fb-body{position:relative;min-height:52px;padding:15px 38px 15px 18px;border:1.5px solid var(--fb-line);border-radius:23px 26px 22px 25px;background:var(--fb-fill);box-shadow:0 4px 14px var(--fb-shadow)}
++.dsh-feedback-cloud .fb-lobes{position:absolute;inset:0;pointer-events:none}
++.dsh-feedback-cloud .fb-lobes i{position:absolute;top:-12px;left:18%;width:35px;height:16px;border:1.5px solid var(--fb-line);border-bottom:0;border-radius:50% 50% 0 0 / 100% 100% 0 0;background:var(--fb-fill)}
++.dsh-feedback-cloud .fb-lobes i:nth-child(2){left:40%;top:-13px;width:48px;height:17px}
++.dsh-feedback-cloud .fb-lobes i:nth-child(3){left:66%;top:-9px;width:29px;height:13px}
++.dsh-feedback-cloud .fb-text{position:relative;white-space:normal;overflow-wrap:anywhere;overflow:auto;max-height:var(--fb-text-height,160px);overscroll-behavior:contain;scrollbar-width:thin}
++.dsh-feedback-cloud .fb-close{position:absolute;right:7px;top:8px;width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--fb-ink);font:20px/1 system-ui,sans-serif;cursor:pointer;pointer-events:none;opacity:.65;padding:0}
++.dsh-feedback-cloud[data-open=true] .fb-close{pointer-events:auto}
++.dsh-feedback-cloud[data-open=true][data-scrollable=true] .fb-text{pointer-events:auto}
++.dsh-feedback-cloud .fb-close:hover{background:color-mix(in srgb,var(--fb-line) 28%,transparent);opacity:1}
++.dsh-feedback-cloud .fb-close:focus-visible{outline:2px solid var(--fb-ink);outline-offset:1px}
++.dsh-feedback-cloud .fb-tail{position:absolute;width:12px;height:10px;left:calc(var(--fb-tail-x,50%) - 6px);bottom:8px;background:var(--fb-fill);border:1.5px solid var(--fb-line);border-radius:50%;pointer-events:none}
++.dsh-feedback-cloud .fb-tail:after{content:"";position:absolute;width:5px;height:5px;left:4px;top:11px;border:1px solid var(--fb-line);border-radius:50%;background:var(--fb-fill)}
++.dsh-feedback-cloud[data-placement=below] .fb-tail{bottom:auto;top:8px}
++.dsh-feedback-cloud[data-placement=below] .fb-tail:after{top:auto;bottom:11px}
++@media(prefers-reduced-motion:reduce){.dsh-feedback-cloud{transform:none;transition:opacity 100ms linear,visibility 0s 100ms}.dsh-feedback-cloud[data-open=true]{transform:none;transition-delay:0s}}
++
++.dsh-feedback-cloud[data-reduced=true]{transform:none;transition:opacity 100ms linear,visibility 0s 100ms}.dsh-feedback-cloud[data-reduced=true][data-open=true]{transform:none;transition-delay:0s}
+--- a/src/shared/state.ts
++++ b/src/shared/state.ts
+@@ -11,6 +11,14 @@
+ import { toWorkStatus, type WorkStatusSnapshot } from './work-status';
+ 
+ /** 一个叶子：计数器 + 载荷（data 为 null = 还没有数据，消费端跳过） */
++export interface PetFeedbackMetadata { eventId: string; source: 'care' }
++export function readFeedbackMetadata(value: unknown): PetFeedbackMetadata | undefined {
++  if (!value || typeof value !== 'object') return undefined;
++  const raw = value as Record<string, unknown>;
++  if (raw.source !== 'care' || typeof raw.eventId !== 'string' || !/^[A-Za-z0-9_.:-]{1,200}$/.test(raw.eventId)) return undefined;
++  return { eventId: raw.eventId, source: 'care' };
++}
++
+ export interface StateLeaf {
+   counter: number;
+   data: unknown;
+@@ -118,11 +126,11 @@
+  * 碎碎念、命令气泡、对话回复共用这一个叶子——前端本来就是同一条展示链路
+  * （同一个 triggerWhisper、同一个气泡槽、同一批 events.whisper 动画）。
+  */
+-export function readSay(leaf: StateLeaf): { text: string; image?: string } | null {
++export function readSay(leaf: StateLeaf): { text: string; image?: string; feedback?: PetFeedbackMetadata } | null {
+   if (!leaf.data || typeof leaf.data !== 'object') return null;
+-  const d = leaf.data as { text?: unknown; image?: unknown };
++  const d = leaf.data as { text?: unknown; image?: unknown; feedback?: unknown };
+   if (typeof d.text !== 'string' || !d.text) return null;
+-  return { text: d.text, image: typeof d.image === 'string' ? d.image : undefined };
++  return { text: d.text, image: typeof d.image === 'string' ? d.image : undefined, feedback: readFeedbackMetadata(d.feedback) };
+ }
+ 
+ /**
+@@ -138,11 +146,11 @@
+  * **名字即文件名**：消费端拿到后交给菜单动作处理函数换源播放，所以这里只做形状校验；
+  * "这个动画是否存在于该宠物"由宿主在写入前保证（播放端对不存在的名字没有兜底）。
+  */
+-export function readAnim(leaf: StateLeaf): { name: string } | null {
++export function readAnim(leaf: StateLeaf): { name: string; feedback?: PetFeedbackMetadata } | null {
+   if (!leaf.data || typeof leaf.data !== 'object') return null;
+-  const d = leaf.data as { name?: unknown };
++  const d = leaf.data as { name?: unknown; feedback?: unknown };
+   if (typeof d.name !== 'string' || !d.name) return null;
+-  return { name: d.name };
++  return { name: d.name, feedback: readFeedbackMetadata(d.feedback) };
+ }
+ 
+ /**
+--- a/src/shared/types.ts
++++ b/src/shared/types.ts
+@@ -84,6 +84,14 @@
+  *  - assetRoot: 素材目录名（= 配置文件前缀 `<名>`，即 `pet/<名>-animation/`）；素材 URL
+  *    用它而不是 id——多实例共享同一素材目录。main 等常规宠物并入 main 条目（assetRoot=main）。
+  */
++/** Optional safe presentation, scoped to a single pet. Absence preserves legacy behavior. */
++export interface PetPresentation {
++  theme: 'silver' | 'orange' | 'tide';
++  pop: boolean;
++  cloud: boolean;
++  closeSeconds: number;
++}
++
+ export interface Pet {
+   /** 唯一标识（程序定位用：素材/记忆/端点参数都按它；绝不重叠，冲突即配置错误） */
+   id: string;
+@@ -91,6 +99,7 @@
+    *  与 id 的区别：id 唯一、程序认它；name 给人看、可重复。缺失/留空按该宠物 id 处理并告警 */
+   name: string;
+   size: number;
++  presentation?: PetPresentation;
+   /** 是否启用余额功能：true=触发余额动画+显示余额气泡；false=该宠物完全禁用余额。缺失即配置错误 */
+   balanceEnabled: boolean;
+   /** 是否启用碎碎念：true=按 eventsRefreshSec.whisper 周期生成一句话并播碎碎念动画；false=禁用。

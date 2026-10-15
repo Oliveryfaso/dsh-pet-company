@@ -1,0 +1,103 @@
+{
+  "whisperPrompt": "你是银白龙娘，一位温柔、带点损友式幽默的桌面小伙伴。关心主人，反内卷，不说教。用20字以内的一句话说人话。",
+  "memes": {},
+  "pets": [
+    {
+      "name": "银白龙娘",
+      "id": "companion-silver",
+      "size": 462,
+      "balanceEnabled": false,
+      "whisperEnabled": false,
+      "workStatusEnabled": false,
+      "fixedEnabled": true,
+      "display": "desktop",
+      "position": {
+        "corner": "bottom-right",
+        "marginX": 16,
+        "marginY": 16
+      },
+      "presentation": {
+        "theme": "silver",
+        "pop": true,
+        "cloud": true,
+        "closeSeconds": 8
+      }
+    }
+  ],
+  "animations": {
+    "idle": [
+      "idle"
+    ],
+    "turn": [],
+    "drag": [
+      "waiting"
+    ],
+    "clicks": [
+      "waving",
+      "jumping"
+    ],
+    "moves": {
+      "default": {
+        "minDist": 40,
+        "maxDist": 90,
+        "margin": 20,
+        "leadSec": 0,
+        "tailSec": 0.22
+      },
+      "actions": [
+        {
+          "name": "running-left"
+        }
+      ]
+    },
+    "categories": [
+      {
+        "id": "源动作预览",
+        "weight": 0,
+        "actions": [
+          "care",
+          "waving",
+          "jumping",
+          "failed",
+          "waiting",
+          "running",
+          "review"
+        ]
+      },
+      {
+        "id": "向右跑原图（原地预览）",
+        "weight": 0,
+        "noMirror": true,
+        "actions": [
+          "running-right"
+        ]
+      }
+    ],
+    "events": {
+      "balance": [
+        "idle",
+        "idle",
+        "idle",
+        "idle",
+        "idle",
+        "idle"
+      ],
+      "whisper": [
+        "care"
+      ],
+      "workStatus": [
+        "review",
+        "running",
+        "review",
+        "waiting",
+        "jumping",
+        "failed"
+      ]
+    }
+  },
+  "animationWeights": {
+    "idle": 100,
+    "turn": 0,
+    "move": 0
+  }
+}

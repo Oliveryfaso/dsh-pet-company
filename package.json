@@ -1,0 +1,74 @@
+{
+  "name": "dsh-pet-company",
+  "version": "0.1.0",
+  "description": "安静一点的桌面陪伴：久坐、喝水、休息与深夜关怀。依赖 dsh-pet。",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "client.js",
+    "pet",
+    "assets/characters",
+    "assets/upstream",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md",
+    "ASSET-LICENSE.md",
+    "cordis.patch.yml",
+    "LICENSE",
+    "CODE-LICENSE.md",
+    "docs/INSTALL.md",
+    "docs/COMPATIBILITY.md",
+    "docs/MARKET.md",
+    "docs/ARCHITECTURE.md",
+    "compat",
+    "docs/qa/feedback",
+    "docs/qa/visual-stability"
+  ],
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/*.test.js test/*.test.cjs tests/*.test.mjs",
+    "check": "node scripts/build-client.mjs --check && node --check src/renderer-bridge.js && node --check src/client-relay.js && node --check src/index.js && node --check src/core.js && node --check src/bridge.js && node --check src/runtime.js && node --check client.js && node --check scripts/generate-pet-pack.mjs && node --check scripts/verify-fywdy-pet-packs.mjs && node --check scripts/render-ui-fixtures.cjs && node --check scripts/capture-pet-pack-preview.mjs && node --check scripts/build-feedback-demo.mjs && node --check scripts/verify-feedback-browser.mjs",
+    "build": "node scripts/build-client.mjs",
+    "build:feedback-demo": "node scripts/build-feedback-demo.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "desktop-pet",
+    "companion"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-host-webserver": "^0.2.0-rc.1",
+    "@deepseek-ai/dsh-home-paths": "^0.2.0-rc.1",
+    "react": "^18.2.0",
+    "@deepseek-ai/schemastery": "^3.18.4",
+    "@deepseek-ai/dsh-client-connection": "^0.2.0-rc.2"
+  },
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Oliveryfaso/dsh-pet-company.git"
+  },
+  "homepage": "https://github.com/Oliveryfaso/dsh-pet-company#readme",
+  "bugs": {
+    "url": "https://github.com/Oliveryfaso/dsh-pet-company/issues"
+  },
+  "license": "SEE LICENSE IN LICENSE"
+}

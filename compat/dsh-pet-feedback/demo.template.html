@@ -1,0 +1,36 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DSH Companion · 反馈独立设计稿</title>
+<style>
+:root{font-family:"PingFang SC",system-ui,sans-serif;color:#3f3c49;background:#f5f4f7;font-synthesis:none}*{box-sizing:border-box}body{margin:0;padding:36px max(20px,calc((100vw - 1120px)/2)) 48px}header{max-width:740px}h1{font-size:28px;font-weight:650;letter-spacing:-.04em;margin:12px 0}p{font-size:14px;line-height:1.8;margin:8px 0}.tag{font-size:11px;letter-spacing:.1em;color:#706477}input{font:inherit;min-width:0;border:1px solid #d9d4df;border-radius:9px;background:#fff;padding:9px 12px;width:min(100%,480px);color:inherit}input:focus{outline:2px solid #a99abb;outline-offset:2px}.pets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:34px}.card{min-width:0;border-top:1px solid #d7d2dd;padding-top:14px}.name{font-size:16px;font-weight:600}.theme{font-size:12px;color:#8b8291;margin-left:8px}.scene{position:relative;height:330px;overflow:visible;background:radial-gradient(ellipse at 50% 72%,#e9e4ee 0,transparent 65%);display:flex;align-items:flex-end;justify-content:center}.pet{position:relative;background:none;border:0;padding:0;cursor:pointer;flex:0 0 340px;width:340px;height:192px;touch-action:none}.pet:focus-visible{outline:2px solid #9f8db3;border-radius:25px;outline-offset:-38px}.actor{display:block;position:relative;width:100%;height:100%;transform-origin:50% 88%;will-change:transform}.actor img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}.anchor{position:absolute;left:27.5%;top:6.666%;width:45%;height:86.666%;pointer-events:none}.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.tools button{font:12px/1.5 inherit;border:1px solid #ddd7e3;background:#fffdff;color:#62596d;border-radius:99px;padding:6px 12px;cursor:pointer}.tools button:hover{background:#ebe5f1}.tools button:focus-visible{outline:2px solid #9f8db3;outline-offset:2px}.note{color:#89808f;font-size:12px}.options{display:flex;gap:20px;flex-wrap:wrap;margin-top:30px;font-size:13px;color:#746a7e}.options label{display:flex;align-items:center;gap:6px}.options input{width:auto}footer{margin-top:40px;max-width:760px;border-top:1px solid #e1dce6;padding-top:15px;color:#8a8290}.status{font-size:12px;min-height:20px;color:#80728e;margin-top:12px}@media(max-width:800px){.pets{grid-template-columns:1fr;gap:30px}.scene{height:285px}.card{max-width:460px;width:100%;margin:auto}.pets{margin-top:20px}body{padding-top:24px}h1{font-size:24px}.pet{max-width:100%;height:auto;aspect-ratio:640/360}.scene{align-items:flex-end}.options{gap:12px}footer{font-size:12px}}@media(prefers-reduced-motion:reduce){.actor{will-change:auto}}
+</style>
+<header><div class="tag">DSH COMPANION / INTERACTION STUDY</div><h1>轻轻回应一下。</h1><p>点一下伙伴，或模拟一次关怀提醒。三位共用一朵云，只换成各自的主题色。</p><p class="note">独立交互设计稿，尚未接入 DSH。角色沿用已选源图，未重新绘制。</p><input id="typing" aria-label="保持输入焦点测试" placeholder="先在这里输入，再用下面的模拟提醒测试焦点"></header>
+<main class="pets" id="pets"></main>
+<div class="options"><label><input type="checkbox" id="reduce">模拟减少动态效果</label><label><input type="checkbox" id="long">长文案 / 滚动与限长</label><button id="all-care" type="button">同时模拟三位关怀</button></div><div class="status" role="status" id="status">默认 8 秒自动关闭；重复事件不会续时。拖动只模拟生命周期，不移动窗口。</div>
+<footer><p>支持同 ID 去重、单条替换、关闭、拖动取消、上下翻转及窗口留白。所有布局使用 CSS / DIP 坐标，不手乘设备缩放。此页面不访问网络、不启动宿主、不播放声音。</p><p>美术来自 fywdy/chatgpt-chibi-pets，遵循 CC BY-NC 4.0；完整署名与许可随项目保存。桌面 helper 仍须经批准接入兼容包后验证。</p></footer>
+<script>/* FEEDBACK_BUNDLE */</script>
+<script>
+const images=/* CHARACTER_DATA */;
+const names={silver:'银紫',orange:'暖橙',tide:'海蓝'};
+const greetings={silver:'嗯，我在呢。今天也慢慢来～',orange:'书先放一边，陪你歇一小会儿。',tide:'收到～给忙碌的你留一朵小海云。'};
+window.demo={controllers:{},sequence:0,lastEvents:{},regions:{}};
+const message=theme=>document.querySelector('#long').checked?'休息一下吧。喝一口水，看看远处，轻轻活动肩膀。'.repeat(18):greetings[theme];
+for(const theme of Object.keys(names)){
+ const card=document.createElement('section');card.className='card';card.dataset.theme=theme;
+ const title=document.createElement('div');title.className='name';title.textContent=names[theme];const caption=document.createElement('span');caption.className='theme';caption.textContent=theme;title.append(caption);
+ const scene=document.createElement('div');scene.className='scene';
+ const button=document.createElement('button');button.type='button';button.className='pet';button.setAttribute('aria-label',`轻触${names[theme]}伙伴`);
+ const actor=document.createElement('span');actor.className='actor';const img=document.createElement('img');img.src=images[theme];img.alt='';img.draggable=false;const anchor=document.createElement('span');anchor.className='anchor';actor.append(img,anchor);button.append(actor);scene.append(button);
+ const tools=document.createElement('div');tools.className='tools';
+ const feedback=DSHFeedback.createPetFeedback({actor,anchor,theme,onRegionsChange:(rects,visible)=>demo.regions[theme]={rects,visible}});demo.controllers[theme]=feedback;
+ const show=(trigger='care',eventId=`${theme}:${++demo.sequence}`,via='pointer')=>{const event={eventId,text:message(theme),trigger,via};demo.lastEvents[theme]=event;feedback.show(event);return event;};
+ button.addEventListener('click',event=>show('click',undefined,event.detail===0?'keyboard':'pointer'));
+ let down=null,drag=false;
+ button.addEventListener('pointerdown',event=>{down={x:event.clientX,y:event.clientY};drag=false;});
+ button.addEventListener('pointermove',event=>{if(down&&!drag&&Math.hypot(event.clientX-down.x,event.clientY-down.y)>6){drag=true;feedback.dragStart();}});
+ const end=()=>{if(drag)feedback.dragEnd();down=null;drag=false;};button.addEventListener('pointerup',end);button.addEventListener('pointercancel',end);
+ for(const [label,run] of [['关怀提醒',()=>show()],['重复同一事件',()=>{if(!demo.lastEvents[theme])show();else feedback.show(demo.lastEvents[theme]);}],['拖动生命周期',()=>{feedback.dragStart();feedback.dragEnd();}],['关闭',()=>feedback.close()]]){const b=document.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',run);tools.append(b);}
+ card.append(title,scene,tools);document.querySelector('#pets').append(card);if(innerWidth>800||theme==='silver')show();
+}
+document.querySelector('#reduce').addEventListener('change',event=>Object.values(demo.controllers).forEach(c=>c.setReducedMotion(event.target.checked)));
+document.querySelector('#all-care').addEventListener('click',()=>Object.keys(names).forEach(theme=>{const event={eventId:`${theme}:${++demo.sequence}`,text:message(theme),trigger:'care'};demo.lastEvents[theme]=event;demo.controllers[theme].show(event);}));
+window.addEventListener('pagehide',()=>Object.values(demo.controllers).forEach(c=>c.destroy()),{once:true});
+</script></html>

@@ -1,0 +1,28 @@
+{
+  "scope": "Pre-fix installed runtime methods exercised by no-window VM harness with fake videos; no decoded frame or UI capture.",
+  "singleIdleRoles": [
+    "silver",
+    "orange",
+    "tide"
+  ],
+  "initialLoadPlusThreeEndedEvents": {
+    "loadCallsPerRole": 4,
+    "frontVideoIndices": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "nativeVideoLoop": false
+  },
+  "presentationOldSquashGuard": {
+    "enabledForAllThree": true,
+    "requestAnimationFrameCallsWhenStartSquashInvoked": 0
+  },
+  "opacityCrossfade": {
+    "bothLayersTransitionSeconds": 0.18,
+    "theoreticalCompositeAlphaAtHalfwayForTwoOpaquePixels": 0.75,
+    "actualBlankDecodedFrameObserved": false
+  },
+  "interpretation": "Repeated same-source reload and double-sided fade are distinct runtime candidates. This does not prove the decoder emits blank frames."
+}

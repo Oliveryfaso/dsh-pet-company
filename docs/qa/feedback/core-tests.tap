@@ -1,0 +1,136 @@
+TAP version 13
+# Subtest: limits Unicode text and keeps markup literal
+ok 1 - limits Unicode text and keeps markup literal
+  ---
+  duration_ms: 0.808625
+  type: 'test'
+  ...
+# Subtest: invalid empty event is ignored
+ok 2 - invalid empty event is ignored
+  ---
+  duration_ms: 0.094125
+  type: 'test'
+  ...
+# Subtest: new care is visible for eight seconds by default
+ok 3 - new care is visible for eight seconds by default
+  ---
+  duration_ms: 0.063042
+  type: 'test'
+  ...
+# Subtest: same event id does not prolong or restart feedback
+ok 4 - same event id does not prolong or restart feedback
+  ---
+  duration_ms: 0.056291
+  type: 'test'
+  ...
+# Subtest: new text replaces the single visible slot without a queue
+ok 5 - new text replaces the single visible slot without a queue
+  ---
+  duration_ms: 0.058792
+  type: 'test'
+  ...
+# Subtest: closing keeps the same event dismissed
+ok 6 - closing keeps the same event dismissed
+  ---
+  duration_ms: 0.075292
+  type: 'test'
+  ...
+# Subtest: only an expired deadline dismisses the visible slot
+ok 7 - only an expired deadline dismisses the visible slot
+  ---
+  duration_ms: 0.054708
+  type: 'test'
+  ...
+# Subtest: drag clears feedback and its release cannot become a click
+ok 8 - drag clears feedback and its release cannot become a click
+  ---
+  duration_ms: 0.064458
+  type: 'test'
+  ...
+# Subtest: care during a drag is suppressed rather than queued
+ok 9 - care during a drag is suppressed rather than queued
+  ---
+  duration_ms: 0.055875
+  type: 'test'
+  ...
+# Subtest: background events stay dismissed on return
+ok 10 - background events stay dismissed on return
+  ---
+  duration_ms: 0.08325
+  type: 'test'
+  ...
+# Subtest: destroyed controller remains inert
+ok 11 - destroyed controller remains inert
+  ---
+  duration_ms: 0.056166
+  type: 'test'
+  ...
+# Subtest: dedupe memory is bounded during repeated clicking
+ok 12 - dedupe memory is bounded during repeated clicking
+  ---
+  duration_ms: 0.277625
+  type: 'test'
+  ...
+# Subtest: cloud sits above an unobstructed pet
+ok 13 - cloud sits above an unobstructed pet
+  ---
+  duration_ms: 0.696958
+  type: 'test'
+  ...
+# Subtest: cloud flips below near the top edge
+ok 14 - cloud flips below near the top edge
+  ---
+  duration_ms: 0.046625
+  type: 'test'
+  ...
+# Subtest: cloud clamps at the right edge and keeps its tail inside
+ok 15 - cloud clamps at the right edge and keeps its tail inside
+  ---
+  duration_ms: 0.035875
+  type: 'test'
+  ...
+# Subtest: negative monitor origins use the same DIP coordinate system
+ok 16 - negative monitor origins use the same DIP coordinate system
+  ---
+  duration_ms: 0.043417
+  type: 'test'
+  ...
+# Subtest: small work area constrains the cloud without overflowing
+ok 17 - small work area constrains the cloud without overflowing
+  ---
+  duration_ms: 0.04975
+  type: 'test'
+  ...
+# Subtest: invalid geometry never produces NaN styles
+ok 18 - invalid geometry never produces NaN styles
+  ---
+  duration_ms: 0.043208
+  type: 'test'
+  ...
+# Subtest: reduced motion has no scale frames
+ok 19 - reduced motion has no scale frames
+  ---
+  duration_ms: 0.057083
+  type: 'test'
+  ...
+# Subtest: real say upgrades the current fallback once without extending or replaying
+ok 20 - real say upgrades the current fallback once without extending or replaying
+  ---
+  duration_ms: 0.060417
+  type: 'test'
+  ...
+# Subtest: a dismissed fallback never reopens when the real text arrives
+ok 21 - a dismissed fallback never reopens when the real text arrives
+  ---
+  duration_ms: 0.034125
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 75.533875

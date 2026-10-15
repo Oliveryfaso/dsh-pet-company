@@ -1,0 +1,2427 @@
+{
+  "scope": "Fresh headers and byte identity; prior full decode reused only for byte-identical files. No video decode or encode performed now.",
+  "clips": [
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/care.webm",
+      "sourceAction": "waving",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 70,
+      "logicalSourceFrames": 4,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.700000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          25,
+          5,
+          166,
+          203
+        ],
+        [
+          25,
+          5,
+          166,
+          203
+        ],
+        [
+          26,
+          5,
+          165,
+          203
+        ],
+        [
+          26,
+          5,
+          166,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/waving.webm"
+    },
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/failed.webm",
+      "sourceAction": "failed",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 122,
+      "logicalSourceFrames": 8,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        140,
+        140,
+        140,
+        140,
+        240
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.220000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          34,
+          5,
+          157,
+          203
+        ],
+        [
+          8,
+          5,
+          184,
+          203
+        ],
+        [
+          33,
+          5,
+          159,
+          203
+        ],
+        [
+          5,
+          5,
+          187,
+          203
+        ],
+        [
+          37,
+          5,
+          154,
+          203
+        ],
+        [
+          35,
+          5,
+          157,
+          203
+        ],
+        [
+          5,
+          45,
+          187,
+          162
+        ],
+        [
+          33,
+          5,
+          159,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/failed.webm"
+    },
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/idle.webm",
+      "sourceAction": "idle",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 110,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        280,
+        110,
+        110,
+        140,
+        140,
+        320
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.100000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          29,
+          5,
+          163,
+          203
+        ],
+        [
+          29,
+          5,
+          162,
+          203
+        ],
+        [
+          28,
+          5,
+          163,
+          203
+        ],
+        [
+          30,
+          5,
+          161,
+          203
+        ],
+        [
+          25,
+          5,
+          166,
+          203
+        ],
+        [
+          30,
+          5,
+          162,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/idle.webm"
+    },
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/jumping.webm",
+      "sourceAction": "jumping",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 84,
+      "logicalSourceFrames": 5,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        140,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.840000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          16,
+          5,
+          176,
+          203
+        ],
+        [
+          22,
+          5,
+          169,
+          203
+        ],
+        [
+          22,
+          5,
+          169,
+          203
+        ],
+        [
+          25,
+          5,
+          167,
+          203
+        ],
+        [
+          18,
+          5,
+          173,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/jumping.webm"
+    },
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/review.webm",
+      "sourceAction": "review",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 103,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.030000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          27,
+          5,
+          165,
+          203
+        ],
+        [
+          26,
+          5,
+          166,
+          203
+        ],
+        [
+          28,
+          5,
+          164,
+          203
+        ],
+        [
+          30,
+          5,
+          162,
+          203
+        ],
+        [
+          27,
+          5,
+          165,
+          203
+        ],
+        [
+          25,
+          5,
+          166,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/review.webm"
+    },
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/running-left.webm",
+      "sourceAction": "running-left",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 106,
+      "logicalSourceFrames": 8,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        220
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.060000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          29,
+          5,
+          162,
+          203
+        ],
+        [
+          29,
+          5,
+          163,
+          203
+        ],
+        [
+          25,
+          5,
+          167,
+          203
+        ],
+        [
+          23,
+          5,
+          169,
+          203
+        ],
+        [
+          26,
+          5,
+          166,
+          203
+        ],
+        [
+          28,
+          5,
+          164,
+          203
+        ],
+        [
+          22,
+          5,
+          169,
+          203
+        ],
+        [
+          26,
+          5,
+          165,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/running-left.webm"
+    },
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/running-right.webm",
+      "sourceAction": "running-right",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 106,
+      "logicalSourceFrames": 8,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        220
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.060000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          29,
+          5,
+          162,
+          203
+        ],
+        [
+          29,
+          5,
+          163,
+          203
+        ],
+        [
+          25,
+          5,
+          167,
+          203
+        ],
+        [
+          23,
+          5,
+          169,
+          203
+        ],
+        [
+          26,
+          5,
+          166,
+          203
+        ],
+        [
+          24,
+          5,
+          168,
+          203
+        ],
+        [
+          24,
+          5,
+          167,
+          203
+        ],
+        [
+          27,
+          5,
+          164,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/running-right.webm"
+    },
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/running.webm",
+      "sourceAction": "running",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 82,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        220
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.820000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          27,
+          5,
+          165,
+          203
+        ],
+        [
+          28,
+          5,
+          164,
+          203
+        ],
+        [
+          27,
+          5,
+          164,
+          203
+        ],
+        [
+          27,
+          5,
+          165,
+          203
+        ],
+        [
+          28,
+          5,
+          164,
+          203
+        ],
+        [
+          28,
+          5,
+          163,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/running.webm"
+    },
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/waiting.webm",
+      "sourceAction": "waiting",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 101,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        260
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.010000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          27,
+          5,
+          164,
+          203
+        ],
+        [
+          27,
+          5,
+          164,
+          203
+        ],
+        [
+          27,
+          5,
+          164,
+          203
+        ],
+        [
+          27,
+          5,
+          165,
+          203
+        ],
+        [
+          30,
+          5,
+          162,
+          203
+        ],
+        [
+          29,
+          5,
+          162,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/waiting.webm"
+    },
+    {
+      "pet": "silver",
+      "file": "pet/companion-silver-animation/waving.webm",
+      "sourceAction": "waving",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 70,
+      "logicalSourceFrames": 4,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.700000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          25,
+          5,
+          166,
+          203
+        ],
+        [
+          25,
+          5,
+          166,
+          203
+        ],
+        [
+          26,
+          5,
+          165,
+          203
+        ],
+        [
+          26,
+          5,
+          166,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-silver-animation/waving.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/care.webm",
+      "sourceAction": "review",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 103,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.030000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          43,
+          9,
+          149,
+          199
+        ],
+        [
+          42,
+          9,
+          150,
+          199
+        ],
+        [
+          42,
+          9,
+          150,
+          199
+        ],
+        [
+          42,
+          9,
+          150,
+          199
+        ],
+        [
+          42,
+          9,
+          150,
+          199
+        ],
+        [
+          42,
+          9,
+          149,
+          198
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/review.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/failed.webm",
+      "sourceAction": "failed",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 122,
+      "logicalSourceFrames": 8,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        140,
+        140,
+        140,
+        140,
+        240
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.220000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          47,
+          63,
+          145,
+          145
+        ],
+        [
+          44,
+          69,
+          147,
+          138
+        ],
+        [
+          44,
+          63,
+          147,
+          145
+        ],
+        [
+          43,
+          72,
+          148,
+          136
+        ],
+        [
+          44,
+          63,
+          148,
+          145
+        ],
+        [
+          43,
+          71,
+          149,
+          136
+        ],
+        [
+          46,
+          63,
+          146,
+          145
+        ],
+        [
+          48,
+          72,
+          143,
+          136
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/failed.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/idle.webm",
+      "sourceAction": "idle",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 110,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        280,
+        110,
+        110,
+        140,
+        140,
+        320
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.100000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          13,
+          49,
+          179,
+          158
+        ],
+        [
+          13,
+          49,
+          178,
+          158
+        ],
+        [
+          13,
+          49,
+          179,
+          158
+        ],
+        [
+          13,
+          49,
+          179,
+          158
+        ],
+        [
+          12,
+          49,
+          179,
+          158
+        ],
+        [
+          12,
+          49,
+          179,
+          158
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/idle.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/jumping.webm",
+      "sourceAction": "jumping",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 84,
+      "logicalSourceFrames": 5,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        140,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.840000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          10,
+          47,
+          182,
+          160
+        ],
+        [
+          5,
+          42,
+          187,
+          166
+        ],
+        [
+          5,
+          45,
+          187,
+          163
+        ],
+        [
+          7,
+          41,
+          184,
+          166
+        ],
+        [
+          12,
+          47,
+          180,
+          160
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/jumping.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/review.webm",
+      "sourceAction": "review",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 103,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.030000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          43,
+          9,
+          149,
+          199
+        ],
+        [
+          42,
+          9,
+          150,
+          199
+        ],
+        [
+          42,
+          9,
+          150,
+          199
+        ],
+        [
+          42,
+          9,
+          150,
+          199
+        ],
+        [
+          42,
+          9,
+          150,
+          199
+        ],
+        [
+          42,
+          9,
+          149,
+          198
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/review.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/running-left.webm",
+      "sourceAction": "running-left",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 106,
+      "logicalSourceFrames": 8,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        220
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.060000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          5,
+          32,
+          187,
+          175
+        ],
+        [
+          8,
+          32,
+          183,
+          176
+        ],
+        [
+          5,
+          35,
+          187,
+          173
+        ],
+        [
+          5,
+          32,
+          187,
+          176
+        ],
+        [
+          5,
+          32,
+          187,
+          175
+        ],
+        [
+          6,
+          32,
+          185,
+          175
+        ],
+        [
+          6,
+          35,
+          186,
+          173
+        ],
+        [
+          8,
+          33,
+          184,
+          175
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/running-left.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/running-right.webm",
+      "sourceAction": "running-right",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 106,
+      "logicalSourceFrames": 8,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        220
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.060000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          7,
+          19,
+          185,
+          189
+        ],
+        [
+          8,
+          19,
+          184,
+          189
+        ],
+        [
+          7,
+          19,
+          184,
+          188
+        ],
+        [
+          8,
+          20,
+          184,
+          188
+        ],
+        [
+          7,
+          19,
+          184,
+          188
+        ],
+        [
+          8,
+          21,
+          183,
+          187
+        ],
+        [
+          10,
+          20,
+          181,
+          188
+        ],
+        [
+          10,
+          20,
+          182,
+          188
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/running-right.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/running.webm",
+      "sourceAction": "running",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 82,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        220
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.820000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          40,
+          20,
+          151,
+          187
+        ],
+        [
+          40,
+          21,
+          152,
+          186
+        ],
+        [
+          43,
+          20,
+          149,
+          187
+        ],
+        [
+          44,
+          21,
+          147,
+          186
+        ],
+        [
+          45,
+          21,
+          147,
+          187
+        ],
+        [
+          52,
+          20,
+          140,
+          187
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/running.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/source-idle.webm",
+      "sourceAction": "idle",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 110,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        280,
+        110,
+        110,
+        140,
+        140,
+        320
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.100000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          13,
+          49,
+          179,
+          158
+        ],
+        [
+          13,
+          49,
+          178,
+          158
+        ],
+        [
+          13,
+          49,
+          179,
+          158
+        ],
+        [
+          13,
+          49,
+          179,
+          158
+        ],
+        [
+          12,
+          49,
+          179,
+          158
+        ],
+        [
+          12,
+          49,
+          179,
+          158
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/idle.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/waiting.webm",
+      "sourceAction": "waiting",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 101,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        260
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.010000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          49,
+          23,
+          143,
+          185
+        ],
+        [
+          48,
+          23,
+          144,
+          184
+        ],
+        [
+          48,
+          23,
+          144,
+          185
+        ],
+        [
+          48,
+          24,
+          144,
+          184
+        ],
+        [
+          48,
+          26,
+          144,
+          182
+        ],
+        [
+          53,
+          24,
+          139,
+          184
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/waiting.webm"
+    },
+    {
+      "pet": "orange",
+      "file": "pet/companion-orange-animation/waving.webm",
+      "sourceAction": "waving",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 70,
+      "logicalSourceFrames": 4,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.700000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          11,
+          15,
+          180,
+          192
+        ],
+        [
+          12,
+          16,
+          180,
+          192
+        ],
+        [
+          11,
+          16,
+          180,
+          192
+        ],
+        [
+          11,
+          16,
+          181,
+          192
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-orange-animation/waving.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/care.webm",
+      "sourceAction": "waving",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 70,
+      "logicalSourceFrames": 4,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.700000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          16,
+          5,
+          176,
+          203
+        ],
+        [
+          17,
+          5,
+          175,
+          203
+        ],
+        [
+          17,
+          5,
+          174,
+          203
+        ],
+        [
+          16,
+          5,
+          176,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/waving.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/failed.webm",
+      "sourceAction": "failed",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 122,
+      "logicalSourceFrames": 8,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        140,
+        140,
+        140,
+        140,
+        240
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.220000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          22,
+          5,
+          170,
+          203
+        ],
+        [
+          14,
+          5,
+          177,
+          203
+        ],
+        [
+          5,
+          21,
+          187,
+          187
+        ],
+        [
+          11,
+          5,
+          181,
+          203
+        ],
+        [
+          13,
+          5,
+          178,
+          203
+        ],
+        [
+          12,
+          5,
+          180,
+          203
+        ],
+        [
+          17,
+          5,
+          174,
+          203
+        ],
+        [
+          16,
+          5,
+          175,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/failed.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/idle.webm",
+      "sourceAction": "idle",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 110,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        280,
+        110,
+        110,
+        140,
+        140,
+        320
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.100000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          13,
+          5,
+          179,
+          203
+        ],
+        [
+          14,
+          5,
+          178,
+          203
+        ],
+        [
+          14,
+          5,
+          177,
+          203
+        ],
+        [
+          14,
+          5,
+          177,
+          203
+        ],
+        [
+          14,
+          5,
+          177,
+          203
+        ],
+        [
+          15,
+          5,
+          177,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/idle.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/jumping.webm",
+      "sourceAction": "jumping",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 84,
+      "logicalSourceFrames": 5,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        140,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.840000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          12,
+          5,
+          180,
+          203
+        ],
+        [
+          16,
+          5,
+          176,
+          203
+        ],
+        [
+          5,
+          5,
+          187,
+          202
+        ],
+        [
+          18,
+          5,
+          173,
+          203
+        ],
+        [
+          11,
+          5,
+          181,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/jumping.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/review.webm",
+      "sourceAction": "review",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 103,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.030000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          19,
+          5,
+          173,
+          203
+        ],
+        [
+          23,
+          5,
+          168,
+          203
+        ],
+        [
+          23,
+          5,
+          168,
+          203
+        ],
+        [
+          22,
+          5,
+          169,
+          203
+        ],
+        [
+          24,
+          5,
+          167,
+          203
+        ],
+        [
+          20,
+          5,
+          171,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/review.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/running-left.webm",
+      "sourceAction": "running-left",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 106,
+      "logicalSourceFrames": 8,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        220
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.060000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          23,
+          5,
+          168,
+          203
+        ],
+        [
+          24,
+          5,
+          167,
+          203
+        ],
+        [
+          22,
+          5,
+          169,
+          203
+        ],
+        [
+          19,
+          5,
+          172,
+          203
+        ],
+        [
+          11,
+          5,
+          180,
+          203
+        ],
+        [
+          20,
+          5,
+          172,
+          203
+        ],
+        [
+          26,
+          5,
+          166,
+          203
+        ],
+        [
+          24,
+          5,
+          168,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/running-left.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/running-right.webm",
+      "sourceAction": "running-right",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 106,
+      "logicalSourceFrames": 8,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        220
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.060000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          20,
+          5,
+          171,
+          203
+        ],
+        [
+          20,
+          5,
+          171,
+          203
+        ],
+        [
+          21,
+          5,
+          171,
+          203
+        ],
+        [
+          21,
+          5,
+          170,
+          203
+        ],
+        [
+          22,
+          5,
+          170,
+          203
+        ],
+        [
+          23,
+          5,
+          168,
+          203
+        ],
+        [
+          24,
+          5,
+          168,
+          203
+        ],
+        [
+          20,
+          5,
+          172,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/running-right.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/running.webm",
+      "sourceAction": "running",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 82,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        220
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.820000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          16,
+          5,
+          176,
+          203
+        ],
+        [
+          22,
+          5,
+          170,
+          203
+        ],
+        [
+          18,
+          5,
+          173,
+          203
+        ],
+        [
+          25,
+          5,
+          166,
+          203
+        ],
+        [
+          22,
+          5,
+          170,
+          203
+        ],
+        [
+          22,
+          5,
+          170,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/running.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/waiting.webm",
+      "sourceAction": "waiting",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 101,
+      "logicalSourceFrames": 6,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        150,
+        150,
+        150,
+        150,
+        150,
+        260
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "1.010000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          20,
+          5,
+          172,
+          203
+        ],
+        [
+          22,
+          5,
+          170,
+          203
+        ],
+        [
+          23,
+          5,
+          168,
+          203
+        ],
+        [
+          29,
+          5,
+          162,
+          203
+        ],
+        [
+          25,
+          5,
+          166,
+          203
+        ],
+        [
+          17,
+          5,
+          174,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/waiting.webm"
+    },
+    {
+      "pet": "tide",
+      "file": "pet/companion-tide-animation/waving.webm",
+      "sourceAction": "waving",
+      "sameBytesAsPreviouslyFullyDecodedClip": true,
+      "previousExactFrameHoldsVerified": true,
+      "previousDecodeFrames": 70,
+      "logicalSourceFrames": 4,
+      "frameHoldTickMs": 10,
+      "sourceDurationsMs": [
+        140,
+        140,
+        140,
+        280
+      ],
+      "freshHeader": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp9",
+            "width": 640,
+            "height": 360,
+            "r_frame_rate": "100/1",
+            "tags": {
+              "alpha_mode": "1"
+            }
+          }
+        ],
+        "format": {
+          "duration": "0.700000"
+        }
+      },
+      "aliasBytesMatchSourceAction": true,
+      "sourceContentBoundsAlpha16": [
+        [
+          16,
+          5,
+          176,
+          203
+        ],
+        [
+          17,
+          5,
+          175,
+          203
+        ],
+        [
+          17,
+          5,
+          174,
+          203
+        ],
+        [
+          16,
+          5,
+          176,
+          203
+        ]
+      ],
+      "contentBoundsScope": "Native 192x208 source tiles; no new decoded canvas-bound measurement in this low-pressure run.",
+      "previousReferenceFile": "pet/companion-tide-animation/waving.webm"
+    }
+  ]
+}

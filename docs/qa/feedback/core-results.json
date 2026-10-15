@@ -1,0 +1,8 @@
+{
+  "command": "node --test --test-reporter=tap tests/feedback-core.test.mjs",
+  "exitCode": 0,
+  "tests": 21,
+  "pass": 21,
+  "fail": 0,
+  "scope": "Pure state / geometry only; DOM, DSH and helper acceptance separate."
+}

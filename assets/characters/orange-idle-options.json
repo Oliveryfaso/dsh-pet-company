@@ -1,0 +1,17 @@
+{
+  "pendingUserChoice": false,
+  "userSelected": "review",
+  "source": {
+    "idle": [
+      "idle"
+    ],
+    "sourceIdleFile": "source-idle.webm"
+  },
+  "review": {
+    "idle": [
+      "review"
+    ],
+    "sourceIdleFile": "source-idle.webm"
+  },
+  "note": "Source orange idle/jumping/failed include visible scale/proportion discontinuities. No anatomy correction or per-frame scaling has been applied."
+}

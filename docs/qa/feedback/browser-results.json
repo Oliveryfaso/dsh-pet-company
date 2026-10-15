@@ -1,0 +1,52 @@
+{
+  "kind": "standalone DOM feedback module, not DSH host acceptance",
+  "checks": 16,
+  "passed": [
+    "literal text / input focus / uniform 220ms motion",
+    "same event ID does not replace or extend",
+    "reentry replaces one message / cancels old animation",
+    "shared ID fallback upgrades text without extra pop or lifetime",
+    "reduced motion cancels actor and cloud scale",
+    "pop false keeps cloud",
+    "cloud false keeps pop / releases input regions",
+    "drag clears / ignores in-drag events and synthetic click",
+    "close preserves focus / releases input regions",
+    "automatic expiry",
+    "viewport 375×667 / flip / padding",
+    "viewport 240×200 / flip / padding",
+    "very short work area hides cloud without intercepting input",
+    "cloud recovers after usable area returns",
+    "destroy cancels effects and removes cloud",
+    "OS prefers-reduced-motion"
+  ],
+  "memoryPressureBeforeLaunch": 1,
+  "browser": "existing bundled Chromium, headless, sandbox enabled",
+  "themes": [
+    {
+      "theme": "silver",
+      "color": "#d7c9e7",
+      "text": "嗯，我在呢。今天也慢慢来～",
+      "open": "true"
+    },
+    {
+      "theme": "orange",
+      "color": "#e8c99f",
+      "text": "书先放一边，陪你歇一小会儿。",
+      "open": "true"
+    },
+    {
+      "theme": "tide",
+      "color": "#b0d3e2",
+      "text": "收到～给忙碌的你留一朵小海云。",
+      "open": "true"
+    }
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "screenshots": [
+    "feedback-desktop.png",
+    "feedback-mobile.png",
+    "feedback-reduced.png"
+  ],
+  "scope": "Independent DOM module only. No DSH host/helper was launched or modified."
+}

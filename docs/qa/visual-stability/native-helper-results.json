@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-15",
+  "host": "DSH Desktop 2.0.17 / DSH 0.2.0-rc.2",
+  "helper": "Official Electron 43.3.0, macOS ARM64",
+  "profileScope": "Isolated temporary profile only",
+  "candidateRuntimeSha256": "af2a16e87754194da4b97ae45d02ae59ded03beb623cbdf2f5fafbfdc50ad045",
+  "method": "Sequential one-pet native UI actions, accessibility state and actual window screenshot inspection; no concurrent pets or frame-accurate recording",
+  "roles": {
+    "orange": {
+      "idleObserved": true,
+      "clickCloudObserved": "orange",
+      "explicitCareObserved": true,
+      "returnToIdleObserved": true,
+      "flatteningObservedInSamples": false,
+      "blankOrPeriodicFadeObservedInSamples": false,
+      "shortDragActionExecuted": true,
+      "screenSpaceDragDistanceVerified": false
+    },
+    "silver": {
+      "idleObserved": true,
+      "clickCloudObserved": "silver",
+      "explicitCareObserved": true,
+      "returnToIdleObserved": true,
+      "blankOrPeriodicFadeObservedInSamples": false
+    },
+    "tide": {
+      "idleObserved": true,
+      "clickCloudObserved": "tide",
+      "explicitCareObserved": true,
+      "returnToIdleObserved": true,
+      "closeBubbleObserved": true,
+      "blankOrPeriodicFadeObservedInSamples": false
+    }
+  },
+  "configurationRestore": {
+    "waterIntervalMinutes": 92,
+    "restoredInRealUiAfterRestart": true,
+    "targetAndCharacterMatchEachRole": true
+  },
+  "memoryPressureAtEachRead": "normal/raw1",
+  "ownedProcessesTerminatedAfterEachRole": true,
+  "limitations": [
+    "Finite screenshot samples cannot prove the absence of every transient blank frame or long-session flicker",
+    "The 220ms pop timing was covered by regression tests; screenshots after UI settling do not resolve its full motion curve",
+    "Source poses remain about 5.45-7.55 logical frames per second; no interpolation or source-loop seam repair",
+    "Short drag was executed but window-relative capture cannot establish screen-space movement or edge correctness",
+    "OS cross-app focus retention, transparent-area click-through, physical multiple displays/DPR and continuous hidden relay remain unverified",
+    "Snapshots are present in the test conversation; no exported native screenshot files are claimed"
+  ],
+  "fullDependencyTypecheck": false,
+  "dependencyTypesRegenerated": false,
+  "formalReleaseValidated": false
+}

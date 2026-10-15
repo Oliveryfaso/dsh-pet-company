@@ -1,0 +1,13 @@
+dsh-pet-company license scope
+
+Original software source code, tests and build tools are licensed under MIT.
+See CODE-LICENSE.md for the full grant and copyright notice.
+
+This MIT grant does not cover the bundled character art, sprite sheets,
+extracted frames, videos or previews. The selected fywdy community character
+art and derived assets are CC BY-NC 4.0 (attribution, non-commercial only).
+See ASSET-LICENSE.md, THIRD_PARTY_NOTICES.md and assets/upstream/fywdy/LICENSE.
+Upstream code and JSON retain the licenses and notices stated by their authors.
+
+Local historical drafts, user reference images, profiles, credentials and
+runtime data are not part of the public distribution.
