@@ -4,7 +4,8 @@ import {mkdtemp,readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {Readable} from 'node:stream';
-import {createRuntime} from '../src/runtime.js';
+import {createRuntime as createActualRuntime} from '../src/runtime.js';
+function createRuntime(ctx,initial,home,options={}) {return createActualRuntime(ctx,{provider:'external',...initial},home,{now:()=>new Date(2026,9,15,10).getTime(),...options});}
 const state={sections:{workStatus:{counter:1,data:{state:'working'}}},pets:{main:{say:{counter:0,data:null}}}};
 async function request(r,method,path,body,headers={}){
  const req=Readable.from(body===undefined?[]:[JSON.stringify(body)]);req.url='/dsh-pet-company/'+path;req.method=method;req.headers={host:'127.0.0.1:3080','content-type':'application/json',...headers};
@@ -20,14 +21,14 @@ test('config saves atomically, reloads, rejects foreign origin and leaves corrup
  const r=createRuntime({}, {}, dir,{bridge});await r.ready;
  try{
   let res=await request(r,'PUT','config',{enabled:false,petId:'a.b'});assert.equal(res.code,200);
-  assert.equal(JSON.parse(await readFile(join(dir,'dsh-pet-company/config.json'),'utf8')).petId,'a.b');
+  assert.equal(JSON.parse(await readFile(join(dir,'dsh-pet-company/config.v2.json'),'utf8')).petId,'a.b');
   const second=createRuntime({}, {}, dir,{bridge});await second.ready;assert.equal(second.status().config.enabled,false);second.stop();
   res=await request(r,'PUT','config',{enabled:true},{origin:'https://elsewhere.test'});assert.equal(res.code,400);assert.equal(r.status().config.enabled,false);
   assert.equal((await request(r,'POST','snooze',{minutes:60})).code,200);
   assert.equal((await request(r,'GET','not-found')).code,404);
-  await writeFile(join(dir,'dsh-pet-company/config.json'),'BROKEN');
+  await writeFile(join(dir,'dsh-pet-company/config.v2.json'),'BROKEN');
   const third=createRuntime({}, {}, dir,{bridge});await third.ready;assert.equal(third.status().config.enabled,false);
-  assert.equal((await request(third,'PUT','config',{})).code,409);assert.equal(await readFile(join(dir,'dsh-pet-company/config.json'),'utf8'),'BROKEN');third.stop();
+  assert.equal((await request(third,'PUT','config',{})).code,409);assert.equal(await readFile(join(dir,'dsh-pet-company/config.v2.json'),'utf8'),'BROKEN');third.stop();
  }finally{r.stop();await rm(dir,{recursive:true});}
 });
 test('failed bubble does not count delivered and optional animation failure cannot resend',async()=>{
@@ -81,7 +82,7 @@ test('legacy config is read without modification; first save writes new home pat
  const r=createRuntime({}, {},dir,{bridge:{close(){}}});
  try{await r.ready;assert.equal(r.status().config.petId,'friend.with.dots');assert.equal(r.status().config.waterMinutes,95);
  assert.equal((await request(r,'PUT','config',{...r.status().config,waterMinutes:96})).code,200);
- assert.equal(JSON.parse(await readFile(join(dir,'dsh-pet-company/config.json'),'utf8')).waterMinutes,96);
+ assert.equal(JSON.parse(await readFile(join(dir,'dsh-pet-company/config.v2.json'),'utf8')).waterMinutes,96);
  assert.equal(await readFile(join(dir,'dsh-companion/config.json'),'utf8'),old);
  }finally{r.stop();await rm(dir,{recursive:true});}
 });
@@ -104,7 +105,7 @@ test('corrupt legacy config identifies the actual file without creating a new on
  const dir=await mkdtemp(join(tmpdir(),'dsh-migration-'));await mkdir(join(dir,'dsh-companion'));
  const legacy=join(dir,'dsh-companion/config.json');await writeFile(legacy,'BROKEN');
  const r=createRuntime({}, {},dir,{bridge:{close(){}}});
- try{await r.ready;const result=await request(r,'PUT','config',{});assert.equal(result.code,409);assert.ok(result.data.error.includes(legacy));assert.equal(await readFile(legacy,'utf8'),'BROKEN');await assert.rejects(readFile(join(dir,'dsh-pet-company/config.json')),e=>e.code==='ENOENT');}finally{r.stop();await rm(dir,{recursive:true});}
+ try{await r.ready;const result=await request(r,'PUT','config',{});assert.equal(result.code,409);assert.ok(result.data.error.includes(legacy));assert.equal(await readFile(legacy,'utf8'),'BROKEN');await assert.rejects(readFile(join(dir,'dsh-pet-company/config.v2.json')),e=>e.code==='ENOENT');}finally{r.stop();await rm(dir,{recursive:true});}
 });
 
 
@@ -126,5 +127,5 @@ for(const directory of ['dsh-companion','dsh-pet-company'])for(const value of [n
 });
 test('shared-home concurrent saves use independent atomic temporary files',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'dsh-concurrent-'));const bridge={close(){}};const first=createRuntime({}, {},dir,{bridge}),second=createRuntime({}, {},dir,{bridge});
- try{await Promise.all([first.ready,second.ready]);const results=await Promise.all([request(first,'PUT','config',{petId:'first'}),request(second,'PUT','config',{petId:'second'})]);assert.deepEqual(results.map(x=>x.code),[200,200]);assert.ok(['first','second'].includes(JSON.parse(await readFile(join(dir,'dsh-pet-company/config.json'),'utf8')).petId));}finally{first.stop();second.stop();await rm(dir,{recursive:true});}
+ try{await Promise.all([first.ready,second.ready]);const results=await Promise.all([request(first,'PUT','config',{petId:'first'}),request(second,'PUT','config',{petId:'second'})]);assert.deepEqual(results.map(x=>x.code),[200,200]);assert.ok(['first','second'].includes(JSON.parse(await readFile(join(dir,'dsh-pet-company/config.v2.json'),'utf8')).petId));}finally{first.stop();second.stop();await rm(dir,{recursive:true});}
 });

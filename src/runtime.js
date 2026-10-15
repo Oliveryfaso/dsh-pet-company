@@ -1,29 +1,21 @@
 import {randomUUID} from 'node:crypto';
-import {readFile,writeFile,mkdir,rename,rm} from 'node:fs/promises';
-import {join,dirname} from 'node:path';
-import {DEFAULTS,validateConfig,Scheduler,pickLine,MINUTE} from './core.js';
+import {Scheduler,pickLine,MINUTE} from './core.js';
 import {PetBridge} from './bridge.js';
+import {loadCompanyConfig,saveCompanyConfig,initialCompanyConfig,validateCompanyConfig} from './runtime-provider.js';
 export const ROUTE='/dsh-pet-company';
 export const LEGACY_ROUTE='/dsh-companion';
 export function createRuntime(ctx, initial, home, options={}) {
   const now=options.now??Date.now, bridge=options.bridge??new PetBridge(()=>ctx.webServer.port);
-  const file=join(home,'dsh-pet-company','config.json');
-  const legacyFile=join(home,'dsh-companion','config.json');
-  let configSource=file;
-  let config=validateConfig(initial??{}), available=false, reason='正在连接 dsh-pet', phase='connecting';
+  let configSource='';
+  let config=initialCompanyConfig(initial??{}), available=false, reason='正在连接 dsh-pet', phase='connecting';
   let lastReminder=null, timer, stopped=false, saving=false, corrupt=false, mutating=false, serial=0, lastAttempt=-Infinity;
   const scheduler=new Scheduler(now());
-  const status=()=>({available,reason,phase,config:{...config},lastReminder,snoozeUntil:scheduler.snoozeUntil});
+  const status=()=>({available,reason:!config.handoffConfirmed?'升级交接待确认：请先在官方入口停用旧实例并停止相关 Profile。':reason,phase:!config.handoffConfirmed?'handoff':phase,config:{...config},lastReminder,snoozeUntil:scheduler.snoozeUntil});
   const ready=(async()=>{
-    try {
-      let raw;
-      try { raw=await readFile(file,'utf8'); }
-      catch(e) { if(e.code!=='ENOENT')throw e; configSource=legacyFile; raw=await readFile(legacyFile,'utf8'); }
-      const saved=JSON.parse(raw);
-      if(!saved||typeof saved!=='object'||Array.isArray(saved))throw Error('配置应为对象');
-      config=validateConfig({...config,...saved});
-    }
-    catch(e) { if(e.code!=='ENOENT') { corrupt=true; config={...config,enabled:false}; reason='陪伴配置无法读取，请先修复配置文件'; } }
+    const loaded=await loadCompanyConfig(home,initial??{});
+    config=loaded.config;configSource=loaded.source;corrupt=loaded.corrupt;
+    if(corrupt)reason='陪伴配置无法读取，请先修复配置文件';
+    await bridge.update?.(config);
   })();
   function unavailable(error) {
     available=false;
@@ -40,7 +32,7 @@ export function createRuntime(ctx, initial, home, options={}) {
   }
   async function tick() {
     await ready;
-    if (stopped || mutating || saving || corrupt) return;
+    if (stopped || mutating || saving || corrupt || !config.handoffConfirmed) return;
     mutating=true;
     try {
       const state=await bridge.state(config.petId); if(stopped)return;
@@ -75,14 +67,13 @@ export function createRuntime(ctx, initial, home, options={}) {
       const body=await bodyOf(req);
       if(req.method==='PUT' && path===ROUTE+'/config') {
         if(corrupt) return send(409,{error:'配置文件损坏，未覆盖原文件。请先修复 '+configSource});
-        const next=validateConfig(body);
-        await mkdir(dirname(file),{recursive:true});
-        const temporary=file+'.'+randomUUID()+'.tmp';
-        try {
-          await writeFile(temporary,JSON.stringify(next,null,2)+'\n',{mode:0o600,flag:'wx'});
-          await rename(temporary,file);
-        } finally { await rm(temporary,{force:true}); }
+        const candidate={...config,...body};
+        const targetKey=candidate.provider==='embedded'?'embeddedTarget':'externalTarget';
+        if(Object.hasOwn(body,'petId')&&!Object.hasOwn(body,targetKey))candidate[targetKey]=body.petId;
+        const next=validateCompanyConfig(candidate);
+        await saveCompanyConfig(home,next);
         config=next; scheduler.reset(now());
+        await bridge.update?.(config);
         return send(200,status());
       }
       if(req.method==='POST' && path===ROUTE+'/snooze') {
@@ -111,8 +102,8 @@ export function createRuntime(ctx, initial, home, options={}) {
     ctx.effect(()=>{
       const run=async()=>{ await tick(); if(!stopped) {timer=setTimeout(run,15_000); timer.unref?.();} };
       void run();
-      return ()=>{stopped=true;clearTimeout(timer);bridge.close();};
+      return ()=>{stopped=true;clearTimeout(timer);return bridge.close();};
     },'companion polling');
   };
-  return {start,tick,handle,status,ready,stop:()=>{stopped=true;clearTimeout(timer);bridge.close();}};
+  return {start,tick,handle,status,ready,stop:()=>{stopped=true;clearTimeout(timer);return bridge.close();}};
 }
