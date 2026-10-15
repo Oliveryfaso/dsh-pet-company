@@ -1,101 +1,64 @@
-# 安装与卸载
+# 安装、升级与回退
 
-## 先看适用范围
+## 当前候选的状态
 
-`dsh-pet-company` 是关怀插件，依赖同一 profile 中的 dsh-pet。Web profile 与原生 Desktop 主窗口已验证基础流程；透明 helper 的焦点、点击穿透和物理跨屏仍未完成验收。请先看 [兼容性状态](COMPATIBILITY.md)。
+0.2.0 实现了同包内置运行组件：角色、云朵、轻回弹和派生播放器均随插件分发。生命周期独审问题已用回归测试修复，分发包包含预构建组件；干净 Desktop 安装、升级回退和连续原生视觉门禁仍未完成。此前已公开的 0.1.0 路径与修补依赖验证不能替代这些门禁。
 
-本项目交付可直接运行的 JavaScript 和预生成宠物视频，安装时不需要生成美术。不要为了本插件修改宿主安全设置。
+本轮仅在临时目录工作，没有修改 DSH.app、真实全局 Profile 或持久化下载运行时。
 
-## Desktop：使用应用自己的插件管理
+## Desktop 安装入口
 
-1. 在 DSH Desktop 当前 profile 的插件管理入口安装 `dsh-pet`。
-2. 在支持 GitHub 地址或安装 spec 的入口填写：
-
-   ```text
-   github:Oliveryfaso/dsh-pet-company
-   ```
-
-3. 按应用提示完成安装并重启当前 profile。打开「设置 → 陪伴」查看连接状态。
-
-原生 Desktop 2.0.17 的主窗口已验证官方通信、设置保存和显式气泡。三色云朵、轻回弹及本轮连续待机/切层播放器修复，都需要对依赖 `dsh-pet@0.3.7` 单独应用仓库 [兼容补丁](../compat/dsh-pet-0.3.7/README.md) 并按官方配置重建；安装本插件不会自动修改依赖。原版 dsh-pet 仅支持基础关怀路径，不能提供本轮完整外观与播放器修复。若显示宿主限制访问，请保留该设置并查看兼容性记录；不要开启额外访问权限或自行拼接原生权限头。
-
-公开仓库保存源码补丁与最小回归输入，不分发完整的修订版 dsh-pet 安装包。本轮兼容包只在经批准的临时隔离 Profile 中安装验证，未安装到用户全局；运行时 JS 构建已完成，但依赖完整类型检查、声明重生成及正式发布门禁未完成。不要把临时兼容包当作正式上游版本。
-
-普通 npm 安装的 `dsh` CLI 不能管理 Electron 保留的 `desktop` profile。应用内置 CLI 与 npm CLI 的权限不同，所以不把 `dsh plugin --profile desktop ...` 作为通用安装命令。具体入口以所用 Desktop 版本提供的功能为准。
-
-## Web：建议使用独立自定义 profile
-
-以下 `pet-company-dev` 是示例名称；可换成你自己的、基于 Web 模板创建的 profile。已有合适 profile 时跳过第一步。
-
-先从 Web 模板创建并启动一次，不自动打开浏览器：
-
-```sh
-dsh --profile pet-company-dev --from-default-profile web --no-open
-```
-
-完成初始化后按 `Ctrl+C` 停止该测试 profile，再安装到同一个 profile：
-
-```sh
-dsh plugin --profile pet-company-dev add dsh-pet@0.3.7
-dsh plugin --profile pet-company-dev add github:Oliveryfaso/dsh-pet-company
-```
-
-默认地址安装的是当时仓库默认分支的内容。需要复现某个版本时，使用真实存在的标签或提交，例如 `github:Oliveryfaso/dsh-pet-company#<实际标签或提交 SHA>`；不要使用尚未发布的标签。
-
-安装后启动：
-
-```sh
-dsh --profile pet-company-dev --no-open
-```
-
-使用终端显示的本机地址进入 DSH。「设置 → 陪伴」中先保留目标 `main`，选择「试说一句（会显示气泡）」检查连接。这个按钮会真实发送一句话；自动关怀只会在符合工作状态、频率与静默规则时发生。
-
-更新插件后重启该 profile，不能把源码目录里的修改当成已经加载。
-
-以上 profile 与 GitHub 安装语法依据 [DSH 官方打包指南](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.zh.md)。
-
-## 导入三套角色
-
-不想换角色时，可以继续使用已有桌宠，跳过此节。
-
-将仓库 `pet/` 中三组配对的配置和动画目录，放入当前 DSH home 下的 `dsh-pet/pet/`：
+使用 DSH Desktop 应用自身的插件管理入口。待候选通过正式安装门禁并公开后，在支持 GitHub spec 的入口选择同一仓库的真实提交：
 
 ```text
-$DSH_HOME/dsh-pet/pet/
-├── companion-silver-config.json
-├── companion-silver-animation/
-├── companion-orange-config.json
-├── companion-orange-animation/
-├── companion-tide-config.json
-└── companion-tide-animation/
+github:Oliveryfaso/dsh-pet-company#<已公开的实际提交 SHA>
 ```
 
-先确认正在使用的 DSH home，并检查是否有同名文件；不要覆盖已有宠物配置，也不要替换 `main-config.jsonc` 或 `main-animation/`。导入后重载 dsh-pet 配置或重启当前 profile，在「桌宠配置」中确认实例存在，再把「陪伴」的目标 ID 改为对应的 `companion-*`。
+不要把占位 SHA 当作命令；默认分支安装也不代表已经取得本候选。按应用提示完成安装、检查激活及需要重启的状态，重启当前 Profile 后核对实际版本。
 
-额外种类的目录规则来自 [dsh-pet 的 pet pack 说明](https://github.com/PC2005-cloud/dsh-pet#%EF%B8%8F-%E9%85%8D%E7%BD%AE%E5%A4%A7%E5%B0%8F--%E4%BD%8D%E7%BD%AE--%E5%A4%9A%E5%BC%80)。关怀插件不会自动复制或覆盖这些资源。
+新装默认内置模式、银白一只。在「设置 → 陪伴」选择视觉角色、展示位置、大小和外观。外部模式才需要同一 Profile 的 dsh-pet；切换模式不会修改其资源或接管其窗口。
 
-橙色默认待机采用用户选择的源 `review` 行，6 帧共 1030 ms；原 `idle` 以 `source-idle` 保留可查看。美术及派生动画仅限非商业用途，详见 [美术许可](../ASSET-LICENSE.md)。
+普通 npm CLI 不能管理 Electron 保留的 `desktop` Profile。Desktop 应用内置 CLI 是不同的正式入口，且要求先由 Desktop 初始化 Profile，再完全退出应用后管理。不要手工伪造 Profile 来绕过此检查。
 
-## 卸载或暂时关闭
+## 独立运行时
 
-只想安静一会儿，使用「安静一小时」；长期停用自动提醒，在「设置 → 陪伴」关闭总开关。
+内置桌面窗口需要官方 Electron **43.3.0 / darwin-arm64**；其他平台保持未验证状态，设置仍可打开。
 
-Desktop 使用安装时的应用插件管理入口移除 `dsh-pet-company`。自定义 Web profile 使用：
+- 缺少运行时不会自动下载或反复启动。明确点击下载并确认后，才从 Electron 官方发布获取并验证 SHA256。
+- 缓存位于 `$DSH_HOME/dsh-pet-company/runtime/electron-cache/`，helper 数据位于同目录的 `user-data/`，与原版 dsh-pet 分开。
+- 如已有正确版本的独立官方 Electron，可在根插件配置的 `runtimeExecutable` 指定绝对路径，结尾为 `Electron.app/Contents/MacOS/Electron`。不能指向 DSH Desktop.app。
+- 下载或启动失败时显示原因，需用户手动重试；已经保存的设置保留。本轮没有执行真实持久化下载，首用下载验收仍待完成。
 
-```sh
-dsh plugin --profile pet-company-dev remove dsh-pet-company
-```
+不修改宿主安全设置，不拼接原生权限头，不启用额外文件访问。
 
-移除按包名进行，不按 GitHub 仓库名推断。若此前装过旧包 `dsh-companion`，它与新包是不同的安装项，应在原 profile 中单独移除旧包，避免同时运行两套提醒。
+## 从旧版升级
 
-卸载不会连带卸载 dsh-pet，也不会自动删除你保存的陪伴设置或手动导入的角色。需要移除这三套角色时，只处理本节列出的三组配对文件，不要删除整个 `dsh-pet` 目录。
+1. 在官方入口停用相关旧 company / `dsh-companion` 实例，并停止其 Profile 或进程；仅关闭主窗口不足以完成交接。
+2. 安装新固定版本并重启，在「陪伴」页面显式确认旧实例已停止。
+3. 旧目标 `main`、语气及提醒参数继续以外部模式载入。只有用户显式选择内置模式才创建内置角色窗口。
 
-## 设置兼容
+设置写入 `$DSH_HOME/dsh-pet-company/config.v2.json`。新文件不存在时只读读取旧 `dsh-pet-company/config.json`，再读取 `dsh-companion/config.json`；保存始终写 v2，不改旧文件。配置损坏时停止关怀并显示原因，不用旧配置掩盖故障。
 
-新版本将设置保存到 `$DSH_HOME/dsh-pet-company/config.json`，同一 home 的多个 profile 会共享它。新文件不存在时可只读载入旧 `dsh-companion/config.json`；之后的保存写入新位置，不修改旧文件。新文件损坏时不会回退覆盖，也不会用旧文件掩盖故障。
+同一 home 的 company 运行权通过独占锁保护；其他 Profile 显示只读，既不调度也不保存。异常退出遗留的锁不会自动夺取。先停止相关 Profile，再使用显式恢复入口核对 token 和原进程已退出；恢复不会向原 PID 发信号。并发恢复使用独立恢复锁，遗留恢复锁需人工核实，不能自动删除不明文件。
 
-## 使用与回退入口
+已有超过 256 个未解决等待会话时，观察器会保守地持续阻止关怀，直到插件重载；不会因历史淘汰而恢复插话。
 
-启用后通过「设置 → 陪伴」选择目标和试说，通过「设置 → 桌宠配置」管理窗口与可用外观；需要先在同一 Profile 加载关怀插件、dsh-pet 和角色资源。
+## 更新、停用与卸载
 
-若在独立测试 Profile 中应用过兼容包，需要回退时，在该 Profile 的原插件管理入口重新安装官方 `dsh-pet@0.3.7` 并重启该 Profile，保留手动导入的角色文件；云朵、轻回弹及播放器修复随之失效。无需修改 DSH Desktop 应用本体、安全设置或其他 Profile。最新原生采样仍未覆盖点击起始653ms和完整220ms回弹，不宣称连续人眼观感已最终验收。
+更新到另一个真实 SHA 后，检查安装器报告并重启 Profile；重复同一 spec 或源码目录变化不能证明实际加载已更新。
+
+「关闭自动提醒」仅停止关怀调度；不等于卸载桌面组件。需要关闭窗口时，将展示方式设为不显示，或在官方入口停用/移除 company。父插件清理会等待子进程退出和已接受的配置写入完成，再释放运行锁。
+
+卸载默认保留 company 设置和私有缓存，也保留原版 dsh-pet 与手动导入的资源。旧 `dsh-companion` 是不同包名，需在原 Profile 单独停用，避免旧提醒器并行工作。
+
+## 回退
+
+先通过官方入口停用相关 company Profile，并确认其 helper 已退出，再安装先前存在的固定版本并重启。已知旧公开基线为 `45589d6b46e6264c04cfa2e0305ae0fdb51055e0`。
+
+旧版自然读取未被改写的 v1 文件和原外部目标，不读取 v2；新 v2 文件继续保留。回退不会自动把新的关怀参数写回旧文件。需要携带新参数时，应先显式生成只含旧字段、以 `externalTarget` 为目标的兼容副本，备份 v1，再另行确认替换；当前提供的 `exportLegacyConfig()` 负责严格转换，尚无页面下载入口。
+
+新装没有 v1 时，旧版恢复其基础默认行为，且需要原版 dsh-pet；不能承诺旧版继续具备内置组件功能。安装器的 manifest/lock 回滚不等于所有磁盘副作用自动回滚。
+
+## 验收边界
+
+单元回归与包清单已检查，正式安装门禁仍见 [兼容性记录](COMPATIBILITY.md)。原生透明、焦点、点击穿透、拖拽、物理多屏及完整连续观感分别记录。有限截图或解码 readiness 变化都不足以证明真实闪烁或零闪烁。

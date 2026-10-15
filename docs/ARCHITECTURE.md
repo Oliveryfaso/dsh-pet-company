@@ -1,3 +1,13 @@
+# 0.2.0 运行组件架构更新
+
+根 Host/Client 仍各只有一个正式 DSH 入口。Host 通过公开 `ctx.plugin()` 组合 `pet-company-runtime`，Client 组合自有 overlay；外部模式沿用原 renderer relay。内置模式由 OwnedController 聚合官方工作事件，使用独立 helper IPC 与 `company-pet:` 资源协议，无裸 helper HTTP、无依赖文件替换。
+
+OwnerLock 保护同一 home 的调度、配置与 helper；ProviderBridge 隔离目标 generation。清理会等待已接受的配置写入和 helper 退出，再释放锁。缺少独立 Electron 时保持设置可用，显式同意后才可获取运行时。完整安装与原生验证仍见 INSTALL/COMPATIBILITY，不能由源码结构推断验收完成。
+
+以下保留旧版关怀插件架构，涉及仅依赖原版渲染的描述适用于外部模式及历史版本。
+
+---
+
 # 结构与交互约定
 
 ## 分工

@@ -56,3 +56,9 @@ fywdy 的脚本与 JSON 工具产物采用 MIT；原文见 [assets/upstream/fywd
 ## dsh-pet 兼容补丁
 
 `compat/dsh-pet-0.3.7/feedback.patch` 含 PC2005-cloud 的 dsh-pet 0.3.7 MIT 代码上下文与本项目修改。原始许可保留于 [UPSTREAM-LICENSE](compat/dsh-pet-0.3.7/UPSTREAM-LICENSE)。该目录不分发上游角色素材，也不自动修改用户依赖。
+
+## 同包派生运行组件
+
+`vendor/dsh-pet-0.3.7/player.js` 与 `work-status.ts` / 生成的 `work-status.js` 复用 PC2005-cloud/dsh-pet 0.3.7 的 MIT 代码。版权为 **Copyright (c) 2026 PC2005-cloud**，完整许可见 [vendor/dsh-pet-0.3.7/LICENSE](vendor/dsh-pet-0.3.7/LICENSE)。本项目修改播放器的循环、首帧提交及过期资源清理，并以独立命名的 company 模块组合；生成的 client/helper bundle 继续保留来源声明。
+
+自有 helper IPC、生命周期和适配代码采用本项目 MIT。随包美术仍按上文 fywdy 的 CC BY-NC 4.0 单独授权；没有打包原版 dsh-pet 的默认美术、字体、提示词或表情图。独立 Electron 不随插件包分发，其官方运行时及第三方许可随官方下载保留。

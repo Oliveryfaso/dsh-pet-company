@@ -1,40 +1,39 @@
 # dsh-pet-company
 
-给 dsh-pet 加上几句关心：坐久了起来走走，水杯空了续一下，深夜了早点收工。默认安静，其余时间陪你慢慢写代码。
+安静一点的桌面陪伴：坐久了起来走走，水杯空了续一下，深夜了早点收工。
 
 ![银白龙娘、橙书娘与蓝鲸女仆三套 Q 版角色预览](assets/characters/preview.png)
 
-美术来自 [fywdy](https://github.com/fywdy/chatgpt-chibi-pets)，为非官方同人，采用 **CC BY-NC 4.0：非商用，须署名**。橙色角色按用户选择使用正常比例的阅读动作待机。
-
-**当前为开发版。已在 DSH Desktop 2.0.17 / DSH 0.2.0-rc.2 的隔离 Profile 验证官方通信、设置保存、显式关怀和云朵气泡；透明浮窗与跨屏等边界单独记录。** 最新范围见 [兼容性](docs/COMPATIBILITY.md)。 用户反馈后的播放器修复已做三宠顺序原生抽查，采样中未复现周期变淡或橙发变扁；源动画仍有分帧感，跨应用焦点、点击穿透和多屏等边界尚未完整验收；[取证与修复范围](docs/qa/visual-stability/README.md)。
+**0.2.0 是内置运行组件开发候选。源码、生命周期独审修复及 194 项回归已通过；干净 Desktop 安装、升级回退和连续原生视觉验收仍在进行，尚不宣称单包安装路径已验收。** 既有 0.1.0 的隔离验证记录继续保留，见 [兼容性](docs/COMPATIBILITY.md)。
 
 ## 它会做什么
 
-- 久坐、喝水、连续工作与深夜提醒，分别可以关闭。
-- 默认安静档每滚动小时最多一句；支持频率、静默时段和「安静一小时」。
-- 审批、提问等待期间不插话，缺少 dsh-pet 或目标宠物时显示原因并保持安静。
-- 「设置 → 陪伴」保存配置；「试说一句（会显示气泡）」可检查目标宠物。
-- 可选 [dsh-pet 0.3.7 兼容补丁](compat/dsh-pet-0.3.7/) 提供三色云朵、轻回弹与原桌宠页的外观设置；安装本插件不会自动改写依赖。独立演示和验证见 [反馈模块](compat/dsh-pet-feedback/)。
+- 久坐、喝水、连续工作和深夜关怀，可分别关闭；默认安静档每滚动小时最多一句。
+- 审批或提问等待期间保持安静；离线、运行组件缺失或目标切换时不积压关怀。
+- 新装默认内置模式，仅一只银白；银白、暖橘、潮蓝可切换，语气与视觉角色独立。
+- 内置模式随包提供三套视频、云朵、等比轻回弹及派生播放器，使用独立命名的 Electron helper。无需修改原版 dsh-pet 文件。
+- 外部模式仍可连接同一 Profile 的原版 dsh-pet；已有 `main` 等目标保持外部模式，升级交接需先停止旧实例。
+- 「设置 → 陪伴」管理关怀、角色、大小、位置及外观；「试说一句」会真实显示关怀。
 
-本插件负责关怀调度，宠物窗口、动作播放、大小、位置、走动与余额显示仍由 [dsh-pet](https://github.com/PC2005-cloud/dsh-pet) 负责。本插件不调用模型、不读取键盘输入，也不采集健康数据。
+本插件不调用模型、不读取键盘输入，也不采集健康数据。内置模式需要独立官方 Electron 43.3.0，目前仅验证目标为 Mac ARM64。缺少运行时时设置仍可用；只有明确点击并同意下载才会获取，不使用 DSH.app 代替。
 
-## 开始使用
+## 安装、更新与回退
 
-先阅读 [安装与卸载](docs/INSTALL.md)：Desktop 通过应用自己的插件管理入口；已验证的 Web 路线可使用独立的自定义 profile。需要在同一 profile 安装并启用 dsh-pet。
+见 [安装说明](docs/INSTALL.md)。使用 DSH Desktop 自身的插件管理入口，按真实提交固定版本并重启 Profile。新内置模式的正式安装验收仍未完成，不要把打包成功或测试数量当成 Desktop 验收。
 
-三套角色素材位于 `pet/`，需单独导入 dsh-pet。安装关怀插件不会自动改写已有桌宠；也可以先对默认 `main` 宠物说话。
+同一 DSH home 的 company 组件只有一个运行拥有者，其他 Profile 只读。v2 设置与旧版文件分开保存；回退默认保留全部设置和旧资源。
 
-| 角色 | 目标宠物 ID | 默认待机 |
+| 角色 | 内置 ID | 默认待机 |
 |---|---|---|
 | 银白龙娘 | `companion-silver` | 源 idle |
 | 橙书娘 | `companion-orange` | 源 review，1030 ms 循环 |
 | 蓝鲸女仆 | `companion-tide` | 源 idle |
 
-「角色」选择台词语气，「宠物 ID」选择说话目标，两者独立。
+橙色点击与关怀使用选定的正常比例阅读动作；原始其他动作保留供来源预览。
 
 ## 开发检查
 
-开发检查需要 Node.js 22.13+（播放器源码回归使用 Node 内置的 TypeScript 类型擦除；运行插件的 JS 下限仍见 package.json）。核心与组件契约测试不需要安装 npm 依赖：
+Node.js 22.13+，核心回归无需安装 npm 依赖：
 
 ```sh
 npm test
@@ -42,12 +41,14 @@ npm run check
 npm pack --dry-run --ignore-scripts --offline
 ```
 
-CI 检查测试、JavaScript 语法和包清单，不启动 DSH、不生成美术、不等同于 Desktop 验收。重新生成素材需要另外准备美术工具，日常运行使用已生成的视频。
+`npm run build` 使用 Node 内置类型擦除生成派生 reducer 和 helper/client bundle。包内交付预构建 JavaScript 与视频，无 prepare/postinstall、无 Electron 二进制、无安装时依赖补丁。CI 不启动 DSH，也不等同于 Desktop 验收。
+
+历史 [dsh-pet 0.3.7 补丁](compat/dsh-pet-0.3.7/) 作为兼容与取证材料保留；原版外部模式不具备内置组件的外观与播放器能力。
 
 ## 许可与来源
 
-自有插件代码、测试和构建工具采用 [MIT](CODE-LICENSE.md)。随包角色美术另受 CC BY-NC 4.0 的非商用限制，整个素材包不能按纯 MIT 使用；总范围见 [LICENSE](LICENSE)。
+自有代码采用 [MIT](CODE-LICENSE.md)。派生播放器和工作状态 reducer 来自 PC2005-cloud/dsh-pet，保留 [上游 MIT 版权与许可](vendor/dsh-pet-0.3.7/LICENSE)。
 
-fywdy 的图集、派生透明动画与预览为 **CC BY-NC 4.0**；上游脚本和 JSON 的 MIT 许可不覆盖美术。角色并非任何品牌的官方形象，也未获得品牌授权、赞助或背书。本项目不宣称这些素材为自行原创手绘。
+三套美术来自 [fywdy/chatgpt-chibi-pets](https://github.com/fywdy/chatgpt-chibi-pets)，为非官方同人，采用 **CC BY-NC 4.0：非商用，须署名**。该限制继续覆盖派生透明视频与预览；整个含素材包不能按纯 MIT 使用。本项目不宣称素材为原创手绘或品牌官方形象。
 
-完整署名、来源与修改说明见 [第三方说明](THIRD_PARTY_NOTICES.md)、[美术许可](ASSET-LICENSE.md) 和 [上游资料](assets/upstream/README.md)。市场收录准备见 [市场说明](docs/MARKET.md)。
+完整范围见 [LICENSE](LICENSE)、[美术许可](ASSET-LICENSE.md)、[第三方说明](THIRD_PARTY_NOTICES.md) 和 [上游资料](assets/upstream/README.md)。
