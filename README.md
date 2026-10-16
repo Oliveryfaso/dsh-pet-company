@@ -4,7 +4,7 @@
 
 ![银白龙娘、橙书娘与蓝鲸女仆三套 Q 版角色预览](assets/characters/preview.png)
 
-**0.2.0 是内置运行组件开发候选。源码已公开到 `feat/installable-runtime`；提交 `b78abd22073e87f028a3c9da8813f57f72b0e57d` 的 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38861959396) 各通过 220 项回归。正式 Desktop CLI 已在隔离 Profile 完成公开固定 SHA 安装、源码更新和移除；本地包设置生命周期子项另有证据。市场端到端、完整 Desktop 升级回退和连续原生视觉仍未验收。** 既有 0.1.0 的隔离验证记录继续保留，见 [兼容性](docs/COMPATIBILITY.md)。
+**0.2.0 可按固定版本试用。源码已公开到 `feat/installable-runtime`；提交 `b78abd22073e87f028a3c9da8813f57f72b0e57d` 的 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38861959396) 各通过 220 项回归。正式 Desktop CLI 已在隔离 Profile 完成公开固定 SHA 安装、源码更新和移除；该产物的 CLI Host 激活、三个 Host 依赖及三角色 HTTP 配置保存／恢复、view 和素材响应也已通过。** 本地包设置生命周期子项另有证据；本次固定 SHA 未运行真实设置 UI 或 helper，实际观感留待试用反馈。市场端到端、完整 Desktop 升级回退仍未验收，见 [兼容性](docs/COMPATIBILITY.md)。
 
 ## 它会做什么
 

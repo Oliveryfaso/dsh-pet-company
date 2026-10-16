@@ -4,7 +4,9 @@
 
 0.2.0 实现了同包内置运行组件：角色、云朵、轻回弹和派生播放器均随插件分发。当前本地候选已完成 220 项回归、构建一致性与实际打包检查；已通过正式 Desktop CLI 在完整隔离 Profile 安装本地包，并在真实 Desktop 验证设置保存、插件停用释放和重新启用后面板保留设置。Web Profile 另已完成离线安装、升级、回退、再升级与移除验证，旧配置字节保持。
 
-候选源码已公开到 `feat/installable-runtime`；已核验提交为 [`b78abd22073e87f028a3c9da8813f57f72b0e57d`](https://github.com/Oliveryfaso/dsh-pet-company/commit/b78abd22073e87f028a3c9da8813f57f72b0e57d)，其 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38861959396) 各通过 220 项回归。2026-10-16 已通过应用自带正式 CLI，在隔离 Desktop Profile 从公开固定 SHA 安装、更新到该提交并移除；两阶段锁文件来源和 16 个已安装文件均匹配对应 Git 提交。该过程没有启动 Host、界面或 helper；市场端到端、Desktop 界面的完整升级回退及连续原生视觉门禁仍待完成。默认分支或旧公开 SHA 不代表取得本候选。原版 dsh-pet 共存、真实运行时下载及中断恢复等未测场景见 [兼容性记录](COMPATIBILITY.md)。此前已公开的 0.1.0 路径与修补依赖验证也不能替代这些门禁。
+候选源码已公开到 `feat/installable-runtime`；可试用的固定提交为 [`b78abd22073e87f028a3c9da8813f57f72b0e57d`](https://github.com/Oliveryfaso/dsh-pet-company/commit/b78abd22073e87f028a3c9da8813f57f72b0e57d)，其 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38861959396) 各通过 220 项回归。2026-10-16 已通过应用自带正式 CLI，在隔离 Desktop Profile 从公开固定 SHA 安装、更新到该提交并移除；两阶段锁文件来源和 16 个已安装文件均匹配对应 Git 提交。另从缓存正式重装该 SHA，完成 CLI Host 激活、三个 Host 依赖、HTTP 配置校验及三角色保存／恢复、view 和 idle 素材响应检查，再正式移除并恢复原配置字节。
+
+该固定 SHA 的基础功能可供试用；本轮没有启动浏览器或 helper，没有把设置声明夹具当作真实 React/UI。三宠闪烁、点击缩放、云朵及日常观感留给用户试用反馈，不作为本轮基础交付前置条件。市场端到端和 Desktop 界面的完整升级回退仍未测；默认分支或旧公开 SHA 不代表取得本候选。原版 dsh-pet 共存、真实运行时下载及中断恢复等限制见 [兼容性记录](COMPATIBILITY.md)。
 
 本轮仅在临时目录工作，没有修改 DSH.app、真实全局 Profile 或持久化下载运行时。
 
@@ -22,7 +24,7 @@ github:Oliveryfaso/dsh-pet-company#b78abd22073e87f028a3c9da8813f57f72b0e57d
 
 普通 npm CLI 不能管理 Electron 保留的 `desktop` Profile。Desktop 应用内置 CLI 是不同的正式入口，且要求先由 Desktop 初始化 Profile，再完全退出应用后管理。不要手工伪造 Profile 来绕过此检查。
 
-本轮固定 SHA 安装使用 `ignoreScripts=true`、`autoInstallPeers=false`。pnpm 报告 GitHub 依赖的构建脚本被忽略及 peer 依赖问题；包内预构建入口已核对存在并匹配对应源码，没有运行安装构建或补装宿主 peers。已安装 Client 仅在不挂载组件/effect 的 slot 夹具中注册一次「陪伴」，实际 Host 的依赖加载和在线设置注册仍待验收。
+本轮固定 SHA 安装使用 `ignoreScripts=true`、`autoInstallPeers=false`。pnpm 报告 GitHub 依赖的构建脚本被忽略及 peer 依赖问题；包内预构建入口已核对存在并匹配对应源码，没有运行安装构建或补装宿主 peers。实际 CLI Host 已解析并满足三个 Host peer；React 与客户端 connection 属于前端层，不按 Host 入口的解析结果判断缺失。实际服务的 Client factory 与安装文件一致；「陪伴」设置声明通过无挂载组件/effect 的 slot 夹具检查，真实 React/UI 加载不在本次固定 SHA 验证范围。
 
 ## 独立运行时
 
