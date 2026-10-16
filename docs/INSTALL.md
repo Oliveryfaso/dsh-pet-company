@@ -4,19 +4,19 @@
 
 0.2.0 实现了同包内置运行组件：角色、云朵、轻回弹和派生播放器均随插件分发。当前本地候选已完成 220 项回归、构建一致性与实际打包检查；已通过正式 Desktop CLI 在完整隔离 Profile 安装本地包，并在真实 Desktop 验证设置保存、插件停用释放和重新启用后面板保留设置。Web Profile 另已完成离线安装、升级、回退、再升级与移除验证，旧配置字节保持。
 
-这些结果尚不等于同一仓库固定 SHA 的公开安装、Desktop 界面的完整升级回退或连续原生视觉门禁通过。候选尚未公开发布；不能用旧公开 SHA 取得本候选。原版 dsh-pet 共存、真实运行时下载及中断恢复等未测场景见 [兼容性记录](COMPATIBILITY.md)。此前已公开的 0.1.0 路径与修补依赖验证也不能替代这些门禁。
+候选源码已公开到 `feat/installable-runtime`；已核验提交为 [`4ca29f5d564b6d58382c07169a534ad562f54a45`](https://github.com/Oliveryfaso/dsh-pet-company/commit/4ca29f5d564b6d58382c07169a534ad562f54a45)，其 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38820883134) 各通过 220 项回归。源码可取得和 CI 通过，仍不等于同一仓库固定 SHA 的实际安装、Desktop 界面的完整升级回退或连续原生视觉门禁通过；正式分发验收尚未完成。默认分支或旧公开 SHA 不代表取得本候选。原版 dsh-pet 共存、真实运行时下载及中断恢复等未测场景见 [兼容性记录](COMPATIBILITY.md)。此前已公开的 0.1.0 路径与修补依赖验证也不能替代这些门禁。
 
 本轮仅在临时目录工作，没有修改 DSH.app、真实全局 Profile 或持久化下载运行时。
 
-## Desktop 安装入口
+## DSH / dshmarket 安装入口
 
-使用 DSH Desktop 应用自身的插件管理入口。待候选通过正式安装门禁并公开后，在支持 GitHub spec 的入口选择同一仓库的真实提交：
+主交付目标是在 DeepSeek Harness 的 dshmarket 管理插件；本项目尚未完成目录收录，市场的一键安装路径仍待验收。在官方 Desktop 上，市场通过宿主插件管理服务操作 `desktop` Profile；该服务不可用时使用应用的「设置 → 插件」，不改用普通 npm CLI。当前已公开源码候选的固定 spec 如下，供后续隔离分发验收使用；尚未实际验证通过该 spec 安装，不应视为正式交付建议：
 
 ```text
-github:Oliveryfaso/dsh-pet-company#<已公开的实际提交 SHA>
+github:Oliveryfaso/dsh-pet-company#4ca29f5d564b6d58382c07169a534ad562f54a45
 ```
 
-不要把占位 SHA 当作命令；默认分支安装也不代表已经取得本候选。按应用提示完成安装、检查激活及需要重启的状态，重启当前 Profile 后核对实际版本。
+以后更新需使用另一个已公开的真实 SHA；默认分支安装也不代表已经取得本候选。按应用提示完成安装、检查激活及需要重启的状态，重启当前 Profile 后核对实际版本。
 
 新装默认内置模式、银白一只。在「设置 → 陪伴」选择视觉角色、展示位置、大小和外观。外部模式才需要同一 Profile 的 dsh-pet；切换模式不会修改其资源或接管其窗口。
 
@@ -27,8 +27,9 @@ github:Oliveryfaso/dsh-pet-company#<已公开的实际提交 SHA>
 内置桌面窗口需要官方 Electron **43.3.0 / darwin-arm64**；其他平台保持未验证状态，设置仍可打开。
 
 - 缺少运行时不会自动下载或反复启动。明确点击下载并确认后，才从 Electron 官方发布获取并验证 SHA256。
-- 缓存位于 `$DSH_HOME/dsh-pet-company/runtime/electron-cache/`，helper 数据位于同目录的 `user-data/`，与原版 dsh-pet 分开。
-- 如已有正确版本的独立官方 Electron，可在根插件配置的 `runtimeExecutable` 指定绝对路径，结尾为 `Electron.app/Contents/MacOS/Electron`。不能指向 DSH Desktop.app。
+- 缓存位于 `$DSH_HOME/dsh-pet-company/runtime/electron-cache/43.3.0-darwin-arm64/`；helper 数据位于 `$DSH_HOME/dsh-pet-company/runtime/user-data/`，与原版 dsh-pet 分开。
+- 如已有正确版本的独立官方 Electron，可在根插件配置的 `runtimeExecutable` 指定绝对路径，结尾为 `Electron.app/Contents/MacOS/Electron`。不能指向 DSH Desktop.app。该项不写入 v2 外观设置，也不在「设置 → 陪伴」修改；更改后需重新加载插件或重启当前 Profile。
+- 非空 `runtimeExecutable` 优先于私有缓存。若该路径无效，应修正或清空根配置再重新加载；下载缓存不会覆盖显式路径。
 - 下载或启动失败时显示原因，需用户手动重试；已经保存的设置保留。本轮没有执行真实持久化下载，首用下载验收仍待完成。
 
 不修改宿主安全设置，不拼接原生权限头，不启用额外文件访问。
