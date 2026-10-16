@@ -4,16 +4,16 @@
 
 0.2.0 实现了同包内置运行组件：角色、云朵、轻回弹和派生播放器均随插件分发。当前本地候选已完成 220 项回归、构建一致性与实际打包检查；已通过正式 Desktop CLI 在完整隔离 Profile 安装本地包，并在真实 Desktop 验证设置保存、插件停用释放和重新启用后面板保留设置。Web Profile 另已完成离线安装、升级、回退、再升级与移除验证，旧配置字节保持。
 
-候选源码已公开到 `feat/installable-runtime`；已核验提交为 [`4ca29f5d564b6d58382c07169a534ad562f54a45`](https://github.com/Oliveryfaso/dsh-pet-company/commit/4ca29f5d564b6d58382c07169a534ad562f54a45)，其 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38820883134) 各通过 220 项回归。源码可取得和 CI 通过，仍不等于同一仓库固定 SHA 的实际安装、Desktop 界面的完整升级回退或连续原生视觉门禁通过；正式分发验收尚未完成。默认分支或旧公开 SHA 不代表取得本候选。原版 dsh-pet 共存、真实运行时下载及中断恢复等未测场景见 [兼容性记录](COMPATIBILITY.md)。此前已公开的 0.1.0 路径与修补依赖验证也不能替代这些门禁。
+候选源码已公开到 `feat/installable-runtime`；已核验提交为 [`b78abd22073e87f028a3c9da8813f57f72b0e57d`](https://github.com/Oliveryfaso/dsh-pet-company/commit/b78abd22073e87f028a3c9da8813f57f72b0e57d)，其 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38861959396) 各通过 220 项回归。2026-10-16 已通过应用自带正式 CLI，在隔离 Desktop Profile 从公开固定 SHA 安装、更新到该提交并移除；两阶段锁文件来源和 16 个已安装文件均匹配对应 Git 提交。该过程没有启动 Host、界面或 helper；市场端到端、Desktop 界面的完整升级回退及连续原生视觉门禁仍待完成。默认分支或旧公开 SHA 不代表取得本候选。原版 dsh-pet 共存、真实运行时下载及中断恢复等未测场景见 [兼容性记录](COMPATIBILITY.md)。此前已公开的 0.1.0 路径与修补依赖验证也不能替代这些门禁。
 
 本轮仅在临时目录工作，没有修改 DSH.app、真实全局 Profile 或持久化下载运行时。
 
 ## DSH / dshmarket 安装入口
 
-主交付目标是在 DeepSeek Harness 的 dshmarket 管理插件；本项目尚未完成目录收录，市场的一键安装路径仍待验收。在官方 Desktop 上，市场通过宿主插件管理服务操作 `desktop` Profile；该服务不可用时使用应用的「设置 → 插件」，不改用普通 npm CLI。当前已公开源码候选的固定 spec 如下，供后续隔离分发验收使用；尚未实际验证通过该 spec 安装，不应视为正式交付建议：
+主交付目标是在 DeepSeek Harness 的 dshmarket 管理插件；本项目尚未完成目录收录，市场的一键安装路径仍待验收。在官方 Desktop 上，市场通过宿主插件管理服务操作 `desktop` Profile；该服务不可用时使用应用的「设置 → 插件」，不改用普通 npm CLI。当前固定 spec 已通过应用自带 CLI 的隔离安装验证，仍是开发候选；市场目录的来源选择和在线激活需另行验收：
 
 ```text
-github:Oliveryfaso/dsh-pet-company#4ca29f5d564b6d58382c07169a534ad562f54a45
+github:Oliveryfaso/dsh-pet-company#b78abd22073e87f028a3c9da8813f57f72b0e57d
 ```
 
 以后更新需使用另一个已公开的真实 SHA；默认分支安装也不代表已经取得本候选。按应用提示完成安装、检查激活及需要重启的状态，重启当前 Profile 后核对实际版本。
@@ -21,6 +21,8 @@ github:Oliveryfaso/dsh-pet-company#4ca29f5d564b6d58382c07169a534ad562f54a45
 新装默认内置模式、银白一只。在「设置 → 陪伴」选择视觉角色、展示位置、大小和外观。外部模式才需要同一 Profile 的 dsh-pet；切换模式不会修改其资源或接管其窗口。
 
 普通 npm CLI 不能管理 Electron 保留的 `desktop` Profile。Desktop 应用内置 CLI 是不同的正式入口，且要求先由 Desktop 初始化 Profile，再完全退出应用后管理。不要手工伪造 Profile 来绕过此检查。
+
+本轮固定 SHA 安装使用 `ignoreScripts=true`、`autoInstallPeers=false`。pnpm 报告 GitHub 依赖的构建脚本被忽略及 peer 依赖问题；包内预构建入口已核对存在并匹配对应源码，没有运行安装构建或补装宿主 peers。已安装 Client 仅在不挂载组件/effect 的 slot 夹具中注册一次「陪伴」，实际 Host 的依赖加载和在线设置注册仍待验收。
 
 ## 独立运行时
 

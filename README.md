@@ -4,7 +4,7 @@
 
 ![银白龙娘、橙书娘与蓝鲸女仆三套 Q 版角色预览](assets/characters/preview.png)
 
-**0.2.0 是内置运行组件开发候选。源码已公开到 `feat/installable-runtime`；提交 `4ca29f5d564b6d58382c07169a534ad562f54a45` 的 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38820883134) 各通过 220 项回归。隔离 Desktop 本地包安装与设置生命周期子项已有证据，公开 GitHub 固定 SHA 的实际安装、完整 Desktop 升级回退和连续原生视觉仍未验收。** 既有 0.1.0 的隔离验证记录继续保留，见 [兼容性](docs/COMPATIBILITY.md)。
+**0.2.0 是内置运行组件开发候选。源码已公开到 `feat/installable-runtime`；提交 `b78abd22073e87f028a3c9da8813f57f72b0e57d` 的 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38861959396) 各通过 220 项回归。正式 Desktop CLI 已在隔离 Profile 完成公开固定 SHA 安装、源码更新和移除；本地包设置生命周期子项另有证据。市场端到端、完整 Desktop 升级回退和连续原生视觉仍未验收。** 既有 0.1.0 的隔离验证记录继续保留，见 [兼容性](docs/COMPATIBILITY.md)。
 
 ## 它会做什么
 
@@ -19,7 +19,7 @@
 
 ## 安装、更新与回退
 
-主交付目标是 DeepSeek Harness 的 dshmarket 插件，继续兼容 DSH Desktop。市场契约、收录草稿与待验范围见 [市场说明](docs/MARKET.md)，固定候选及升级回退见 [安装说明](docs/INSTALL.md)。当前尚未上架；新内置模式的市场与公开固定 SHA 安装验收仍未完成，不要把 helper 单独运行、打包成功或测试数量当成市场验收。
+主交付目标是 DeepSeek Harness 的 dshmarket 插件，继续兼容 DSH Desktop。市场契约、收录草稿与待验范围见 [市场说明](docs/MARKET.md)，固定候选及升级回退见 [安装说明](docs/INSTALL.md)。当前尚未上架，市场端到端安装验收仍未完成；正式 CLI 的固定源码验证、helper 单独运行、打包或测试数量都不能替代市场验收。
 
 同一 DSH home 的 company 组件只有一个运行拥有者，其他 Profile 只读。v2 设置与旧版文件分开保存；回退默认保留全部设置和旧资源。
 
