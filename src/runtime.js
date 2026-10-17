@@ -8,7 +8,7 @@ export function createRuntime(ctx, initial, home, options={}) {
   const now=options.now??Date.now, bridge=options.bridge??new PetBridge(()=>ctx.webServer.port);
   let configSource='';
   let config=initialCompanyConfig(initial??{}), available=false, reason='正在连接 dsh-pet', phase='connecting';
-  let lastReminder=null, timer, stopped=false, saving=false, corrupt=false, mutating=false, serial=0, lastAttempt=-Infinity;
+  let lastReminder=null, timer, refreshTimer, stopped=false, saving=false, corrupt=false, mutating=false, serial=0, lastAttempt=-Infinity;
   const mutations=new Set();let stopping;
   const scheduler=new Scheduler(now());
   const status=()=>({readOnly:options.ownership?!options.ownership.owned:false,ownership:options.ownership?.status?.(),runtime:options.runtimeSource?.status?.(),helper:options.helper?.status?.(),available,reason:!config.handoffConfirmed?'升级交接待确认：请先在官方入口停用旧实例并停止相关 Profile。':reason,phase:!config.handoffConfirmed?'handoff':phase,config:{...config},lastReminder,snoozeUntil:scheduler.snoozeUntil});
@@ -89,6 +89,7 @@ export function createRuntime(ctx, initial, home, options={}) {
         await saveCompanyConfig(home,next);
         config=next; scheduler.reset(now());
         if(!stopped)await bridge.update?.(config);
+        clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{void tick();},2000);refreshTimer.unref?.();
         return send(200,status());
       }
       if(req.method==='POST' && path===ROUTE+'/snooze') {
@@ -112,7 +113,7 @@ export function createRuntime(ctx, initial, home, options={}) {
     } catch(e) { send(400,{error:e.message}); } finally {saving=false;}
   }
   function handle(req,res){const pending=handleRequest(req,res);if(['PUT','POST'].includes(req.method)){mutations.add(pending);pending.then(()=>mutations.delete(pending),()=>mutations.delete(pending));}return pending;}
-  function stop(){if(stopping)return stopping;stopped=true;clearTimeout(timer);return stopping=(async()=>{await ready;await Promise.allSettled([...mutations]);await bridge.close();})();}
+  function stop(){if(stopping)return stopping;stopped=true;clearTimeout(timer);clearTimeout(refreshTimer);return stopping=(async()=>{await ready;await Promise.allSettled([...mutations]);await bridge.close();})();}
   const start=()=>{
     ctx.effect(()=>ctx.webServer.register({kind:'prefix',path:ROUTE,handler:handle}),'pet company routes');
     ctx.effect(()=>ctx.webServer.register({kind:'prefix',path:LEGACY_ROUTE,handler:handle}),'legacy companion routes');
