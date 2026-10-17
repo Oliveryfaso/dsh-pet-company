@@ -6,7 +6,7 @@
 
 候选源码已公开到 `feat/installable-runtime`；可试用的固定提交为 [`b78abd22073e87f028a3c9da8813f57f72b0e57d`](https://github.com/Oliveryfaso/dsh-pet-company/commit/b78abd22073e87f028a3c9da8813f57f72b0e57d)，其 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38861959396) 各通过 220 项回归。2026-10-16 已通过应用自带正式 CLI，在隔离 Desktop Profile 从公开固定 SHA 安装、更新到该提交并移除；两阶段锁文件来源和 16 个已安装文件均匹配对应 Git 提交。另从缓存正式重装该 SHA，完成 CLI Host 激活、三个 Host 依赖、HTTP 配置校验及三角色保存／恢复、view 和 idle 素材响应检查，再正式移除并恢复原配置字节。
 
-该固定 SHA 的基础功能可供试用；本轮没有启动浏览器或 helper，没有把设置声明夹具当作真实 React/UI。三宠闪烁、点击缩放、云朵及日常观感留给用户试用反馈，不作为本轮基础交付前置条件。市场端到端和 Desktop 界面的完整升级回退仍未测；默认分支或旧公开 SHA 不代表取得本候选。原版 dsh-pet 共存、真实运行时下载及中断恢复等限制见 [兼容性记录](COMPATIBILITY.md)。
+该固定 SHA 的基础功能可供试用；对该 SHA 的当时验收没有启动浏览器或 helper，也没有把设置声明夹具当作真实 React/UI。三宠闪烁、点击缩放、云朵及日常观感留给用户试用反馈，不作为本轮基础交付前置条件。市场端到端和 Desktop 界面的完整升级回退仍未测；默认分支或旧公开 SHA 不代表取得本候选。原版 dsh-pet 共存、真实运行时下载及中断恢复等限制见 [兼容性记录](COMPATIBILITY.md)。
 
 本轮仅在临时目录工作，没有修改 DSH.app、真实全局 Profile 或持久化下载运行时。
 
