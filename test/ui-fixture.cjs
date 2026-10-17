@@ -10,7 +10,7 @@ function fixture(options = {}) {
   let server = {available:true,reason:'',phase:'watching',config:clone(CONFIG),lastReminder:null};
   Object.assign(server, options.status || {});
   const childPlugins=[], registeredSlots=new Map();
-  const pluginEffects = [], slots = [], effects = [], timers = new Map(), calls = [], handlers = [];
+  const pluginEffects = [], slots = [], effects = [], timers = new Map(), calls = [], handlers = [], confirmations = [];
   const equal = (a,b) => a && b && a.length === b.length && a.every((v,i) => Object.is(v,b[i]));
   function schedule() { if (!running || pending) return; pending = true; queueMicrotask(() => { pending = false; if (running) render(); }); }
   const React = {
@@ -34,10 +34,11 @@ function fixture(options = {}) {
     setInterval(fn,ms) {const id=++serial;timers.set(id,{fn,ms,type:'interval'});return id;},clearInterval(id){timers.delete(id);},
     async fetch(url,request) {calls.push({url,request}); if(handlers.length)return handlers.shift()(url,request); const path=url.split('/').pop(); if(path==='config')server.config=JSON.parse(request.body); if(path==='snooze')server.phase='snoozed'; return {ok:true,json:async()=>clone(path==='test'?{ok:true}:server)};}
   };
+  sandbox.window.confirm = message => { confirmations.push(message); return true; };
   vm.runInNewContext(SOURCE,sandbox,{filename:'client.js'}); render();
   function nodes(node=tree) { if(!node || typeof node!=='object')return []; return [node,...node.children.flatMap(x=>nodes(x))]; }
   const result = {
-    calls,handlers,timers,childPlugins,registeredSlots,
+    calls,handlers,timers,childPlugins,registeredSlots,confirmations,
     get tree(){return tree;},get server(){return server;},set server(value){server=value;},
     text(){const walk=node=>node&&typeof node==='object'?node.children.map(walk).join(''):String(node??'');return walk(tree);},
     byRole(role){return nodes().filter(node=>node.props.role===role);},

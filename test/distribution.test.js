@@ -17,6 +17,6 @@ test('published package contains runtime and attribution without install hooks o
  const cache=await mkdtemp(join(tmpdir(),'company-pack-'));t.after(()=>rm(cache,{recursive:true,force:true}));
  const [pack]=JSON.parse(execFileSync('npm',['pack','--dry-run','--json'],{cwd:new URL('../',import.meta.url),env:{...process.env,npm_config_cache:cache},encoding:'utf8',maxBuffer:4*1024*1024}));const files=new Set(pack.files.map(f=>f.path));
  for(const required of ['runtime/electron-helper/main.cjs','runtime/electron-helper/preload.cjs','runtime/electron-helper/renderer.js','runtime/electron-helper/view-bundle.js','vendor/dsh-pet-0.3.7/player.js','vendor/dsh-pet-0.3.7/work-status.js','vendor/dsh-pet-0.3.7/LICENSE','ASSET-LICENSE.md','THIRD_PARTY_NOTICES.md'])assert.ok(files.has(required),'Missing '+required);
- for(const file of files)assert.doesNotMatch(file,/(?:^|\/)(?:node_modules|\.git|\.env|sessions|storages|user-data|electron-cache|owner\.lock|Electron\.app)(?:\/|$)|\.(?:log|sqlite|db|tgz)$/);
+ for(const file of files){assert.doesNotMatch(file,/(?:^|\/)(?:node_modules|\.git|\.env|sessions|storages|user-data|electron-cache|owner\.lock|Electron\.app)(?:\/|$)|\.(?:log|sqlite|db|tgz)$/);assert.doesNotMatch(file,/^docs\/qa\/(?:feedback|visual-stability)\//);}
  for(const role of ['silver','orange','tide'])assert.ok(files.has('pet/companion-'+role+'-config.json'));
 });

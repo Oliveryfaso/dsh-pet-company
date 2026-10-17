@@ -2,13 +2,19 @@
 
 ## 当前候选的状态
 
-0.2.0 实现了同包内置运行组件：角色、云朵、轻回弹和派生播放器均随插件分发。当前本地候选已完成 220 项回归、构建一致性与实际打包检查；已通过正式 Desktop CLI 在完整隔离 Profile 安装本地包，并在真实 Desktop 验证设置保存、插件停用释放和重新启用后面板保留设置。Web Profile 另已完成离线安装、升级、回退、再升级与移除验证，旧配置字节保持。
+0.2.0 实现了同包内置运行组件：角色、云朵、轻回弹和派生播放器均随插件分发。此前固定候选完成了 Desktop CLI 隔离安装、设置保存与停用恢复，以及 Web Profile 离线安装、升级、回退和移除检查；对应固定 SHA 与历史 CI 证据见下文，不能代表当前工作树验收。
 
 候选源码已公开到 `feat/installable-runtime`；可试用的固定提交为 [`b78abd22073e87f028a3c9da8813f57f72b0e57d`](https://github.com/Oliveryfaso/dsh-pet-company/commit/b78abd22073e87f028a3c9da8813f57f72b0e57d)，其 [Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/38861959396) 各通过 220 项回归。2026-10-16 已通过应用自带正式 CLI，在隔离 Desktop Profile 从公开固定 SHA 安装、更新到该提交并移除；两阶段锁文件来源和 16 个已安装文件均匹配对应 Git 提交。另从缓存正式重装该 SHA，完成 CLI Host 激活、三个 Host 依赖、HTTP 配置校验及三角色保存／恢复、view 和 idle 素材响应检查，再正式移除并恢复原配置字节。
 
 该固定 SHA 的基础功能可供试用；本轮没有启动浏览器或 helper，没有把设置声明夹具当作真实 React/UI。三宠闪烁、点击缩放、云朵及日常观感留给用户试用反馈，不作为本轮基础交付前置条件。市场端到端和 Desktop 界面的完整升级回退仍未测；默认分支或旧公开 SHA 不代表取得本候选。原版 dsh-pet 共存、真实运行时下载及中断恢复等限制见 [兼容性记录](COMPATIBILITY.md)。
 
 本轮仅在临时目录工作，没有修改 DSH.app、真实全局 Profile 或持久化下载运行时。
+
+### 2026-10-17 当前工作树复验
+
+`npm test` 221 项通过，`npm run check` 通过；当前运行环境为 Node 26。npm 打包 dry-run 通过，包保留安装所需运行文件和许可证，排除 `docs/qa/feedback` 与 `docs/qa/visual-stability` 验证素材。历史 Node 22/24 各 220 项结果仍只对应上文固定 SHA。
+
+设置流程在浏览器中操作了当前构建的 `client.js` 面板，并连接临时 home 上的真实 `createRuntime`：角色、提醒开关和间隔、大小、位置、云朵均保存；非法间隔不会发配置写入；模拟存储失败会报错并保留草稿；重启本地 runtime 后设置恢复。另检查了宿主不可用提示、375px 视口无横向溢出。React 模块加载、DSH Host/RPC 为 stub，因此这不是实际 DSH Desktop 界面或真实宿主验收。
 
 ## DSH / dshmarket 安装入口
 

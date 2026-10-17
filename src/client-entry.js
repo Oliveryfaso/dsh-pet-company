@@ -119,7 +119,7 @@
               setNotice('已经对桌宠说了悄悄话，看看它的气泡吧。');
             } else {
               acceptStatus(next, action === 'save');
-              setNotice(action === 'save' ? '已保存，下次启动也会记得。' : '好，这一小时安静陪你。');
+              setNotice(action === 'save' ? '已保存，下次启动也会记得。' : action === 'snooze' ? '好，这一小时安静陪你。' : '');
             }
           } catch (failure) { if (state.mounted) setError(readableError(failure)); }
           finally { state.busy = ''; if (state.mounted) setBusy(''); }

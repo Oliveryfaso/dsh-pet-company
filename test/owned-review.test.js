@@ -48,13 +48,13 @@ test('actual root disposers retain ownership until helper exit and accepted conf
  globalThis.__reviewRoot={home:h,createRuntime:runtime.createRuntime,HelperManager:class extends HelperManager{constructor(opts){super({...opts,source:{executable:async()=>'/official/Electron'},spawn:()=>p});instances.push(this);}},RuntimeSource:class{status(){return {};}async close(){}}};
  t.after(()=>{resume.resolve();p.finish();delete globalThis.__reviewSave;delete globalThis.__reviewRoot;});
  const mod=await instrument('../src/index.js',s=>s.replace("import Schema from '@deepseek-ai/schemastery';",'const chain=new Proxy(()=>chain,{get:()=>chain});const Schema=chain;').replace("import {resolveDshHome} from '@deepseek-ai/dsh-home-paths';",'const resolveDshHome=()=>globalThis.__reviewRoot.home;').replace("import {createRuntime} from './runtime.js';",'const {createRuntime}=globalThis.__reviewRoot;').replace("import {HelperManager} from './owned/helper-manager.js';",'const {HelperManager}=globalThis.__reviewRoot;').replace("import {RuntimeSource} from './owned/runtime-source.js';",'const {RuntimeSource}=globalThis.__reviewRoot;'));
- const disposers=[],routes=new Map();const ctx={effect(fn){const d=fn();if(typeof d==='function')disposers.push(d);},on(){},plugin(plugin,cfg){plugin.apply(ctx,cfg);},webServer:{register({path,handler}){routes.set(path,handler);return ()=>{};}},connection:{fetch:{register(){return ()=>{};}}}};
+ const disposers=[],routes=new Map();const ctx={effect(fn){const d=fn();if(typeof d==='function')disposers.push(d);},on(){},plugin(plugin,cfg){plugin.apply(ctx,cfg);},webServer:{register({path,handler}){routes.set(path,handler);return ()=>routes.delete(path);}},connection:{fetch:{register(){return ()=>{};}}}};
  mod.apply(ctx,{});await instances[0].queue;for(let n=0;n<100&&!instances[0].ready;n++)await new Promise(r=>setTimeout(r,5));assert.equal(instances[0].ready,true);
  await turn();const r={handle:routes.get('/dsh-pet-company')};const save=request(r,'PUT','config',{enabled:false});await entered.promise;
  let disposed=false;const unload=Promise.all(disposers.map(d=>d())).then(()=>disposed=true);await turn();
  const b=new OwnerLock(h);await b.ready;assert.equal(b.owned,false);assert.equal(disposed,false);assert.equal((await request(r,'PUT','config',{enabled:true})).code,503);
  p.finish();await new Promise(r=>setTimeout(r,30));const duringWrite=new OwnerLock(h);await duringWrite.ready;t.after(()=>duringWrite.release());assert.equal(duringWrite.owned,false,'accepted save must still retain ownership');assert.equal(disposed,false);hold=false;resume.resolve();await save;await unload;
- const next=new OwnerLock(h);await next.ready;assert.equal(next.owned,true);await next.release();await b.release();
+ assert.equal(routes.size,0,'unload must unregister company and owned-asset routes');const next=new OwnerLock(h);await next.ready;assert.equal(next.owned,true);await next.release();await b.release();
 });
 
 test('unresolved waiting survives idle expiry and history capacity until explicit resume',async t=>{

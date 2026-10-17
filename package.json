@@ -27,9 +27,7 @@
     "docs/COMPATIBILITY.md",
     "docs/MARKET.md",
     "docs/ARCHITECTURE.md",
-    "compat",
-    "docs/qa/feedback",
-    "docs/qa/visual-stability"
+    "compat"
   ],
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.js test/*.test.cjs tests/*.test.mjs",
