@@ -1,46 +1,68 @@
-# 市场与发布状态
+# 市场与上架
 
-主交付目标是在 DeepSeek Harness 的 **dshmarket** 内安装和管理的标准 DSH 插件，继续兼容 DSH Desktop。独立 Electron helper 是插件的桌面显示组件；单独运行 helper 不代表市场安装、设置或卸载已验收。
+主交付目标：作为标准 DSH 插件收录进 **dshmarket**（DeepSeek Harness 的插件市场应用，DSH Desktop 2.0.17 内置版本 1.66.5），并可从市场一键安装。
 
-源码仓库：[Oliveryfaso/dsh-pet-company](https://github.com/Oliveryfaso/dsh-pet-company)。公开仓库、GitHub 安装、npm 发布与第三方市场收录分别进行；**本页不表示已经上架或发布 npm**。当前内置组件候选位于 `feat/installable-runtime`，固定源码与已测范围见 [安装说明](INSTALL.md)；默认分支仍是旧外部模式版本，不能把目录链接指向仓库视为已经交付内置候选。
+源码仓库：[Oliveryfaso/dsh-pet-company](https://github.com/Oliveryfaso/dsh-pet-company) · 当前版本：**0.2.0** · 状态：**发布材料已就绪，等待合并后的目录 PR 审核**。
 
-## 插件契约与宿主集成
+> 本页记录投稿材料与验证边界，不代表已经上架。dshmarket 不是 DeepSeek 官方运营的商店，它是社区市场应用；目录数据的官方来源是 awesome-dsh-plugin。收录不等于官方背书，也不等于安全审计。
 
-包根的 `package.json` 声明 `dsh.bundle.patch: ./cordis.patch.yml`，补丁只插入一个 `dsh-pet-company` 根入口。Host 从 `src/index.js` 导出 `name`、`Config`、`inject`、`apply`，内部通过公开 `ctx.plugin()` 组合；Client 由 `dsh.client` 和预构建 `./client` export 提供，以同一包名注册 lazy-CJS factory，在 `settings.section` 注册「陪伴」设置页。声明了 Client 不能代替 bundle；这些入口随源码和归档一起交付。
+## 官方流程（2026-10 核对）
 
-运行依赖使用宿主提供的 `@deepseek-ai/*` peers 与 React：webserver/home-paths 为 `^0.2.0-rc.1`，client-connection 为 `^0.2.0-rc.2`；实际验证宿主为 DSH 0.2.0-rc.2 / Desktop 2.0.17。包内已有运行 JavaScript、三套资源与许可，无安装时构建脚本，也不包含 Electron 二进制。运行时的显式下载、路径优先级与平台范围见 [安装说明](INSTALL.md#独立运行时)。
+1. **DSH 侧只定义插件形态与安装机制**：组合包在 `package.json` 声明 `dsh.bundle.patch`，客户端 UI 另声明 ``dsh.client``。官方文档：[打包与安装插件](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.zh.md)。
+2. **市场应用本身不收条目**：dsh-market README 明确写着「这个仓库是市场应用本身，不是插件目录……想让你的插件上架，请去 awesome-dsh-plugin 提 PR」：[dsh-market](https://github.com/dsh-market/dsh-market)。
+3. **实际投稿**：向 [awesome-dsh-plugin/awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 提交一个 PR，只新增一个 `data/plugins/Oliveryfaso__dsh-pet-company.yml`；不要编辑生成的 README。规范：[contributing.md](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/contributing.md)。
+4. **CI 之后仍需人工审阅**；CI 通过只是前置条件。近期已接受的同类 PR（如 #7702 单条目新增）可作为格式参照。
+5. 合并后站点与 dshmarket 的目录数据自动重建（市场每次启动实时拉取 `awesome-dsh-plugin.com/plugins.json`），通常一天内生效。**提 PR 不等于已上架，以合并后的市场实际可安装为准。**
 
-dshmarket 在官方 Desktop 的 `desktop` Profile 上通过宿主 `pluginManager.installBundle()` / `removeBundle()` 进行包操作，不转为普通 npm CLI 修改该 Profile；常规 Web Profile 使用 DSH 自己的插件管理路径。安装结果还需区分已应用、需重启、被其他层覆盖和失败。停用后须释放插件的路由、计时与 helper；移除默认保留用户配置和私有缓存。现有本地包/生命周期子项证据不自动覆盖市场端到端路径。
+## 投稿条目（拟）
 
-契约依据：[DSH 插件形态](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/cookbook/extension-cookbook.md)、[官方 Client 模块与设置说明](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/cookbook/adding-a-settings-card.md)、[dshmarket 安装来源和管理路径](https://github.com/dsh-market/dsh-market)。本地核对使用捆绑的 dshmarket 1.66.5 和 DSH 0.2.0-rc.2 实现；官方主分支的新接口不能直接当作该版本已支持。
-
-## 目录收录
-
-本机捆绑的 dshmarket 以 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) 为目录来源。当前投稿为新增 `data/plugins/Oliveryfaso__dsh-pet-company.yml` 后提 PR；不编辑生成的目录 README。
+文件名：`data/plugins/Oliveryfaso__dsh-pet-company.yml`
 
 ```yaml
 url: https://github.com/Oliveryfaso/dsh-pet-company
 name: Oliveryfaso/dsh-pet-company
 category: notify
+tarball: https://github.com/Oliveryfaso/dsh-pet-company/releases/download/v0.2.0/dsh-pet-company-0.2.0.tgz
 description:
-  en: 'Quiet break and water reminders with three bundled companion characters for DeepSeek Harness.'
-  zh: '为 DeepSeek Harness 提供三套内置陪伴形象和安静的休息、喝水提醒。'
+  en: 'Quiet break, water, long-session and late-night reminders delivered by three bundled chibi companions, with cloud bubbles and a light bounce. Works in-page without extra downloads; the optional macOS desktop window uses a separately downloaded Electron helper.'
+  zh: '用三套内置 Q 版角色提供久坐、喝水、连续工作与深夜关怀，带云朵气泡和轻回弹；页面内显示无需额外下载，可选 macOS 桌面窗口使用单独下载的 Electron 组件。'
 ```
 
-以上是面向内置候选的投稿草稿，须待候选成为目录实际可取得的版本、相关安装门禁通过后才能使用。投稿前需有真实代码、有效 `dsh.bundle.patch` 和 patch 文件、`dsh-plugin` topic；**仓库创建必须满一天**。CI 通过后仍需维护者审阅。新仓库当天不能跳过该门槛；本项目目前只准备材料，不提交目录 PR。[收录规范](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/contributing.md)
+分类说明：核心行为是关怀提醒与桌面陪伴反馈，选 `notify`；如果维护者认为更贴近 `ui`，按收录规则由维护者调整，不会因此打回。
 
-## 安装来源与关联
+## 收录要求核对
 
-无需 npm 也能从 GitHub 安装。若未来发布 npm，包的 `repository` 应指回本仓库，目录才会关联该包；不要在投稿 YAML 中自填 `npm:`。可选预构建 `tarball` 必须指向 GitHub Release 的 HTTPS `.tgz`；使用版本文件名时绑定固定标签。[分发规范](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/contributing.md#npm-package--npm-包optional--可选)
+| 要求 | 本项目 |
+|---|---|
+| `package.json` 声明 `dsh.bundle.patch` 与同目录 `cordis.patch.yml` | 已具备：`dsh.bundle.patch: ./cordis.patch.yml`，patch 只插入一个 `dsh-pet-company` 行 |
+| 真实可运行代码，非占位/空壳 | 有完整 Host、Client、设置面板、调度、三角色资源与测试 |
+| 仓库创建满 1 天 | 2026-10-15 创建，已满足 |
+| 活跃维护 | 当前发布版本 0.2.0，CI 通过 |
+| `dsh-plugin` topic | **待添加**（发布前在仓库设置中添加） |
+| 描述准确、不夸大 | 条目描述只写已实现能力；桌面窗口注明可选、需单独下载 |
+| 官方 ``deepseek-ai/*` 包用 peerDependencies | 已使用 peerDependencies，且含明确预发布范围 |
+| 预构建 tarball（可选，推荐） | 已计划：GitHub Release `v0.2.0` 资产，HTTPS、`.tgz`、绑定 tag、属主与条目一致，符合市场校验规则 |
+| npm（可选） | 不发布 npm；市场从 Release tarball 安装 |
+| 截图 | 仓库根 `screenshots.json` 声明 4 张真实截图/预览（1–8 张，相对路径，GitHub 托管） |
 
-dshmarket 的来源优先级是已关联的 npm 包、同仓库的有效 Release tarball、GitHub 源码。当前未发布 npm 或 Release tarball；只有仓库根 URL 的条目会生成不带开发分支的 `github:Oliveryfaso/dsh-pet-company`，落到默认分支。公开开发分支和目录收录均不能单独证明用户装到内置候选。
+## 发布前门禁
 
-添加 topic 只帮助发现，不自动完成目录投稿。[DSH 官方发现说明](https://github.com/deepseek-ai/deepseek-harness#community-and-support) 没有承诺自动上架。`repository` 字段也不代表某个市场账号已验证仓库所有权。
+- [ ] 最终代码通过 `npm test`、`npm run check`、`npm pack --dry-run` 与 Node 22/24 CI
+- [ ] 隔离 Profile 真实宿主验收：安装、设置保存/重载、三角色、点击与试说云朵、外部缺失提示、配置损坏提示、卸载与进程/端口清理
+- [ ] 默认分支合并到 0.2.0；Release `v0.2.0` 与 tarball 资产发布
+- [ ] 添加 `dsh-plugin` topic
+- [ ] 目录 PR 通过 CI 与维护者审阅
+- [ ] 合并后在 dshmarket 中实际安装一次并确认版本
 
-其他社区目录如 dshfind、DSH 1024Store 有各自规则；不能把一个目录收录当成所有市场都已收录，也不把第三方市场称为 DeepSeek 官方运营市场。
+## 来源、许可与分发边界
 
-## 发布材料的边界
+- 自有代码 MIT；角色美术与派生视频 **CC BY-NC 4.0（署名、非商业性使用）**，不能把完整包统一标为 MIT。
+- 免费发布在 GitHub 与插件目录属于非商业分发；若用于收费产品、付费分发、商业捆绑或商业推广，需要另行取得美术权利方授权或替换素材。当前发布方式与该限制不冲突。
+- 角色为非官方同人，非任何品牌官方形象，也未获品牌授权或背书；署名、来源与修改说明见 [第三方说明](../THIRD_PARTY_NOTICES.md) 与 [美术许可](../ASSET-LICENSE.md)。
+- 发布包排除历史拒稿、用户参考截图、个人配置、运行日志与 Electron 二进制；包含上游 MIT 许可与美术许可全文。
 
-0.2.0 内置模式的云朵、回弹和派生播放器已随 company 包分发，不能再要求用户替换原版 dsh-pet 的依赖文件。外部模式只提供原版 dsh-pet 的基础关怀。固定 `b78abd2` 已可作为基础功能试用候选：正式 CLI 获取、源码更新、移除及真实 CLI Host／HTTP 配置和三角色素材检查通过。市场实际安装与在线激活、完整 Desktop 升级回退仍未验证；三宠连续观感留给用户试用反馈，透明 helper 的焦点、点击穿透和物理多屏也不宣称已验。版本范围见 [兼容性记录](COMPATIBILITY.md)。
+## 提交后跟进
 
-自有代码为 MIT；美术为 fywdy 的 CC BY-NC 4.0 非商用素材，不能填成全包 MIT。发布包应包含来源与许可，排除历史拒稿、用户参考截图、个人配置和运行日志。具体署名见 [第三方说明](../THIRD_PARTY_NOTICES.md)。
+1. 关注目录 PR 的 CI 与维护者评论，按意见修改同一分支。
+2. 合并后等待站点/市场目录重建，安装一次确认来源、版本、设置页与三角色。
+3. 若条目被拒：按评论修正描述、格式或材料后重提；不要同时向 dsh-market 仓库提交条目。

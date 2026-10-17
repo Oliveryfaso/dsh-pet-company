@@ -5,7 +5,9 @@
 !/package.json
 !/client.js
 !/cordis.patch.yml
+!/screenshots.json
 !/README.md
+!/CHANGELOG.md
 !/LICENSE
 !/CODE-LICENSE.md
 !/ASSET-LICENSE.md
@@ -24,6 +26,7 @@
 !/docs/COMPATIBILITY.md
 !/docs/MARKET.md
 !/docs/ARCHITECTURE.md
+!/docs/screenshots/
 # Never track machine data, dependencies, or platform resource forks.
 **/node_modules/
 **/._*

@@ -27,6 +27,7 @@
     "docs/COMPATIBILITY.md",
     "docs/MARKET.md",
     "docs/ARCHITECTURE.md",
+    "CHANGELOG.md",
     "compat"
   ],
   "scripts": {
@@ -36,7 +37,8 @@
     "build:feedback-demo": "node scripts/build-feedback-demo.mjs"
   },
   "engines": {
-    "node": ">=22.13"
+    "node": ">=22.13",
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0"
   },
   "keywords": [
     "dsh-plugin",

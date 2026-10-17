@@ -20,3 +20,13 @@ test('published package contains runtime and attribution without install hooks o
  for(const file of files){assert.doesNotMatch(file,/(?:^|\/)(?:node_modules|\.git|\.env|sessions|storages|user-data|electron-cache|owner\.lock|Electron\.app)(?:\/|$)|\.(?:log|sqlite|db|tgz)$/);assert.doesNotMatch(file,/^docs\/qa\/(?:feedback|visual-stability)\//);}
  for(const role of ['silver','orange','tide'])assert.ok(files.has('pet/companion-'+role+'-config.json'));
 });
+test('release metadata and screenshots stay publishable',async()=>{
+ const manifest=JSON.parse(await read('package.json'));
+ assert.match(manifest.engines.dsh,/^>=0\.2\.0-rc\.1 <0\.3\.0-0$/);
+ assert.equal(manifest.private,true);
+ assert.ok((await stat(new URL('../CHANGELOG.md',import.meta.url))).isFile());
+ const shots=JSON.parse(await read('screenshots.json'));
+ assert.ok(shots.length>=1&&shots.length<=8);
+ for(const shot of shots){assert.doesNotMatch(shot,/\.\.|^\//);assert.ok((await stat(new URL('../'+shot,import.meta.url))).isFile(),'missing screenshot '+shot);}
+ const entry=await read('cordis.patch.yml');assert.match(entry,/dsh-pet-company/);
+});
