@@ -29,7 +29,7 @@ English: a calm desktop companion plugin for DeepSeek Harness. It ships three ch
 
 **方式一：dshmarket（推荐）**
 
-打开 DSH Desktop → 设置 → 插件市场（dshmarket），搜索 `dsh-pet-company`，点击安装并按提示重启当前 Profile。目录收录正在审核，合并后市场会自动同步；如果暂时搜不到，使用方式二。
+打开 DSH Desktop → 设置 → 插件市场（dshmarket），搜索 `dsh-pet-company`，点击安装并按提示重启当前 Profile。目录收录 [PR #7812](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/7812) 已提交、CI 通过，等待审阅与合并（2026-10-18 核对）；合并后市场会自动同步。如果暂时搜不到，使用方式二。市场内安装仍待实测。
 
 **方式二：GitHub Release**
 
@@ -46,14 +46,14 @@ Desktop 用户在应用自己的「设置 → 插件」入口填写同一个 tar
 
 - **DSH 页面内**：角色显示在 DSH 页面右下角，不需要独立 Electron；本项目目前在 macOS 上实测，其他平台未验证。
 - **桌面窗口**：独立透明置顶窗口，需要 macOS arm64 和官方 Electron 43.3.0；首次在设置里点击下载并确认。
-- **暂不显示**：保留提醒调度和全部设置。
+- **暂不显示**：隐藏角色并暂停内置关怀投递，保留全部设置；恢复显示后不补发。
 
 新装默认「桌面窗口」。没有独立运行时不会自动下载，设置页会说明原因，其他设置仍可修改保存。
 
 ## 第一次使用
 
-1. 重启 Profile 后打开「设置 → 陪伴」，确认状态为「桌宠已连接」。
-2. 选择「内置形象」与「显示位置」。想跳过 Electron 下载时，先选「DSH 页面内」并保存。
+1. 重启 Profile 后打开「设置 → 陪伴」。缺少独立运行时时页面会显示原因。
+2. 选择「内置形象」与「显示位置」。想跳过 Electron 下载时，先选「DSH 页面内」并保存，待显示就绪后确认状态为「桌宠已连接」。
 3. 点击宠物可看到云朵气泡；「试说一句」会发送一条真实关怀（每分钟最多一次）。
 4. 外部模式需要先在同一个 Profile 安装并启用 [dsh-pet](https://github.com/PC2005-cloud/dsh-pet)，再把「陪伴模式」切换为外部。
 
@@ -78,7 +78,7 @@ Desktop 用户在应用自己的「设置 → 插件」入口填写同一个 tar
 - **更新**：市场内一键更新，或重新安装更新版本的 tarball，然后重启 Profile。只改源码目录不代表已加载。
 - **暂时关闭**：使用「安静一小时」；长期停止自动提醒可关闭总开关。把「显示位置」设为「暂不显示」可隐藏角色但保留设置。
 - **卸载**：使用安装时的同一入口移除 `dsh-pet-company`。卸载默认保留设置与运行时缓存，也不会卸载 dsh-pet。若装过旧包 `dsh-companion`，需单独移除，避免两个提醒器并行。
-- **回退**：先停用当前版本并确认 helper 退出，再安装较早的 release；旧版只读取旧配置文件，v2 设置保留不写回。
+- **回退**：先停用当前版本并确认 helper 退出，再核对目标版本来源与配置契约。截至 2026-10-18 仅有 `v0.2.0` 一个 Release，没有更早的 release tarball；历史源码回退与配置边界见[安装说明](docs/INSTALL.md#回退)。
 
 ## 兼容范围
 
@@ -115,7 +115,7 @@ Node.js 22.13+；核心回归无需安装 npm 依赖。`npm run build` 使用 No
 - 插件自有代码、测试和构建脚本：[MIT](CODE-LICENSE.md)。
 - 派生播放器与工作状态 reducer 来自 PC2005-cloud/dsh-pet 0.3.7，保留 [上游 MIT 版权与许可](vendor/dsh-pet-0.3.7/LICENSE)。
 - 三套角色美术来自 [fywdy/chatgpt-chibi-pets](https://github.com/fywdy/chatgpt-chibi-pets)，为非官方同人，采用 **CC BY-NC 4.0：署名、非商业性使用**。该限制覆盖派生的透明视频、预览与截图；含素材的完整发布包不能按纯 MIT 使用。
-- 本项目以免费、非商业方式在 GitHub 与 DSH 插件目录分发；如用于收费产品、付费分发或其他商业用途，须另行取得美术权利方授权或替换素材。
+- 本项目在 GitHub 与 Release 免费提供，DSH 插件目录已投稿、待审阅与合并；具体使用仍须符合美术的非商业条件，不能仅凭免费认定。商业用途须另行取得美术权利方授权或替换素材。
 - 角色不是任何品牌的官方形象，也未获得品牌授权或背书。
 
 完整范围见 [LICENSE](LICENSE)、[美术许可](ASSET-LICENSE.md)、[第三方说明](THIRD_PARTY_NOTICES.md)、[更新日志](CHANGELOG.md) 与 [上游资料](assets/upstream/README.md)。

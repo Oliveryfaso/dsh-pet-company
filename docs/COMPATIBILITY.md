@@ -4,11 +4,13 @@
 
 ## 当前版本
 
-- 版本：0.2.0（发布候选）
+- 版本：0.2.0（[已发布](https://github.com/Oliveryfaso/dsh-pet-company/releases/tag/v0.2.0)，发布提交 `77e94a950a20b78ea029907aae248dfeb5d7b1d4`）
 - 适配：DSH 0.2.0-rc.x（`engines.dsh: >=0.2.0-rc.1 <0.3.0-0`）
 - 实测宿主：DSH 0.2.0-rc.2 / DSH Desktop 2.0.17（macOS 15 arm64）
-- 自动化：`npm test` 222 项通过，`npm run check` 通过，`npm pack` 产物 135 个文件（约 22.2 MB）
-- 市场状态：目录收录 PR 待提交/审核；市场内一键安装尚未验证
+- 发布提交自动化：[Node 22/24 CI](https://github.com/Oliveryfaso/dsh-pet-company/actions/runs/39088195494) 各 223 项测试通过，`npm run check` 与包清单检查通过；清单 136 个文件，Release 资产 22,175,221 字节
+- 市场状态（2026-10-18）：目录 [PR #7812](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/7812) 已提交、CI 通过，等待维护者审阅与合并；市场内一键安装尚未验证
+
+本次跟进读取了最新仓库、Release 和 CI 记录，并下载公开 Release tarball 作内存检查：HTTP 200，GitHub 提供的 SHA256 校验值匹配，136 个文件均与发布提交一致，必需许可与署名齐全；没有安装、执行或解压到磁盘。没有重跑 DSH、浏览器或 Electron。下方真实宿主验收是先前记录的本地 tarball 流程；不能据此声称本次已经从公开 Release URL 或市场完成安装。
 
 ## 2026-10-18 隔离 Web Profile 真实宿主验收
 
@@ -49,7 +51,7 @@
 | 2026-10-17 | 派生 helper 三宠交互取样 | 每只两轮待机、可信点击、缩放/主题色/关闭采样；未见身体空帧或橙色变扁；取自独立取样工具，不等于完整桌面视觉通过；详见 [取样记录](qa/visual-stability/README.md) 与 [结果](qa/visual-stability/native-helper-results.json) |
 | 2026-10-15 | 先期 Web 设置与气泡流程 | 0.1.0 时代的 renderer relay/设置面板/显式气泡；不等同 0.2.0 内置组件验收 |
 
-历史 CI（Node 22/24）与本轮 Node 26 本地测试都通过；CI 只覆盖测试、语法与包清单，不启动 DSH。
+历史 CI（Node 22/24）与 2026-10-18 真实宿主验收时的 Node 26 本地测试记录均为通过；CI 只覆盖测试、语法与包清单，不启动 DSH。本次文档跟进另跑分发检查 8 项与 `npm run check`，均通过，没有本地重跑完整 223 项测试。
 
 ## 播放器与视觉修复
 
@@ -61,7 +63,7 @@
 - 橙色点击与关怀改用源 review 姿态的精确视频副本 `care`；原偏扁动作只保留在来源预览分类。
 - 取消、重复事件、超时、切层、卸载都有清理与过期提交防护，由自动回归覆盖；真实连续观感仍由用户试用反馈为主。
 
-**这些修复只由自动测试与本轮页面内采样支持。** 透明 helper 的连续人眼观感、长时运行和桌面合成效果未在本轮重新验收。
+**这些修复只由自动测试与 2026-10-18 的页面内采样记录支持。** 透明 helper 的连续人眼观感、长时运行和桌面合成效果没有在该次验收或本次文档跟进中重新验收。
 
 ## 宿主兼容与配置边界
 
